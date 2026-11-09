@@ -1,0 +1,32 @@
+server:
+  port: ${PORT:8085}
+
+spring:
+  application:
+    name: reservas
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tamaka}
+    username: ${DB_USER:tamaka_reservas}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: reservas
+  flyway:
+    schemas: reservas
+
+tamaka:
+  security:
+    jwt:
+      issuer: tamaka-cuentas
+      public-key: ${TAMAKA_JWT_PUBLIC_KEY:}
+  clientes:
+    comercios:
+      url: ${COMERCIOS_URL:http://localhost:8082}
+  reservas:
+    plazo-respuesta: 30m        # RF-RES-15
+    plazo-pago: 60m             # RF-RES-14
+    intervalo-timeouts: PT1M    # frecuencia del job de cancelacion

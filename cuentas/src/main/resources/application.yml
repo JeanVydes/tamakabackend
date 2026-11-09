@@ -1,0 +1,27 @@
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: cuentas
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tamaka}
+    username: ${DB_USER:tamaka_cuentas}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: cuentas
+  flyway:
+    schemas: cuentas
+
+tamaka:
+  security:
+    jwt:
+      issuer: tamaka-cuentas
+      public-key: ${TAMAKA_JWT_PUBLIC_KEY:}
+      private-key: ${TAMAKA_JWT_PRIVATE_KEY:}
+      access-token-ttl: 15m

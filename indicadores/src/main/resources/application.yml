@@ -1,0 +1,25 @@
+server:
+  port: ${PORT:8090}
+
+spring:
+  application:
+    name: indicadores
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tamaka}
+    username: ${DB_USER:tamaka_indicadores}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: indicadores
+  flyway:
+    schemas: indicadores
+
+tamaka:
+  security:
+    jwt:
+      issuer: tamaka-cuentas
+      public-key: ${TAMAKA_JWT_PUBLIC_KEY:}

@@ -1,0 +1,19 @@
+# Build
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Secretos y configuracion local
+.env
+*.pem
+*.key
+jwt-*.pem
+
+# Logs de la JVM y de ejecucion
+hs_err_pid*.log
+replay_pid*.log
+*.log

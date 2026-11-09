@@ -1,0 +1,25 @@
+server:
+  port: ${PORT:8082}
+
+spring:
+  application:
+    name: comercios
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tamaka}
+    username: ${DB_USER:tamaka_comercios}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: comercios
+  flyway:
+    schemas: comercios
+
+tamaka:
+  security:
+    jwt:
+      issuer: tamaka-cuentas
+      public-key: ${TAMAKA_JWT_PUBLIC_KEY:}

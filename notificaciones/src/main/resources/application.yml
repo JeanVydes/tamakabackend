@@ -1,0 +1,15 @@
+server:
+  port: ${PORT:8089}
+
+spring:
+  application:
+    name: notificaciones
+  data:
+    mongodb:
+      uri: ${MONGO_URI:mongodb://localhost:27017/tamaka_notificaciones}
+
+tamaka:
+  security:
+    jwt:
+      issuer: tamaka-cuentas
+      public-key: ${TAMAKA_JWT_PUBLIC_KEY:}

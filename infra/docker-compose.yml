@@ -1,0 +1,27 @@
+# Infraestructura local de desarrollo. No es produccion (produccion usa RDS, MongoDB Atlas/cluster y ElastiCache).
+# Uso: definir las variables antes de levantar:
+#   export POSTGRES_ADMIN_PASSWORD=...   (superusuario local)
+#   export TAMAKA_DB_PASSWORD=...        (clave de los usuarios tamaka_<servicio>)
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_DB: tamaka
+      POSTGRES_USER: tamaka_admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Defina POSTGRES_ADMIN_PASSWORD}
+      TAMAKA_DB_PASSWORD: ${TAMAKA_DB_PASSWORD:?Defina TAMAKA_DB_PASSWORD}
+    ports:
+      # 5433 en el host: 5432 suele estar ocupado por una instalacion local de PostgreSQL.
+      - "5433:5432"
+    volumes:
+      - ./postgres/01-esquemas.sh:/docker-entrypoint-initdb.d/01-esquemas.sh:ro
+
+  mongo:
+    image: mongo:8
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

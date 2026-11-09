@@ -1,0 +1,28 @@
+server:
+  port: ${PORT:8086}
+
+spring:
+  application:
+    name: pagos
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tamaka}
+    username: ${DB_USER:tamaka_pagos}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: pagos
+  flyway:
+    schemas: pagos
+
+tamaka:
+  security:
+    jwt:
+      issuer: tamaka-cuentas
+      public-key: ${TAMAKA_JWT_PUBLIC_KEY:}
+  pagos:
+    # Secreto compartido con la pasarela para firmar los webhooks. Vacio = se rechazan todos (fail closed).
+    webhook-secret: ${PAGOS_WEBHOOK_SECRET:}
