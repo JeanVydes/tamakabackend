@@ -8,12 +8,6 @@ databases:
     region: oregon
     postgresMajorVersion: "18"
 
-redis:
-  - name: tamaka-redis
-    plan: free
-    region: oregon
-    maxmemoryPolicy: allkeys-lru
-
 envVarGroups:
   - name: tamaka-jwt-publica
     envVars:
@@ -21,6 +15,12 @@ envVarGroups:
         sync: false
 
 services:
+  - type: keyvalue
+    name: tamaka-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
   - type: web
     name: tamaka-cuentas
     runtime: docker
@@ -264,11 +264,11 @@ services:
       - fromGroup: tamaka-jwt-publica
       - key: REDIS_HOST
         fromService:
-          type: redis
+          type: keyvalue
           name: tamaka-redis
           property: host
       - key: REDIS_PORT
         fromService:
-          type: redis
+          type: keyvalue
           name: tamaka-redis
           property: port
