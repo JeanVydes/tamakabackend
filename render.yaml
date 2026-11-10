@@ -1,6 +1,5 @@
-# Blueprint de Render: base PostgreSQL y servicio de Cuentas.
-# DB_HOST, DB_NAME, DB_USER y DB_PASSWORD se enlazan a la base automaticamente (sin copiar y pegar).
-# Las claves JWT son secretas: se introducen en el dashboard (sync: false).
+# Blueprint de Render: base PostgreSQL compartida (un esquema por servicio), Key Value y servicios web.
+# Los secretos (sync: false) se introducen en el dashboard; no van en este archivo.
 databases:
   - name: tamaka-cuentas-db
     databaseName: tamaka_cuentas
@@ -8,6 +7,18 @@ databases:
     plan: free
     region: oregon
     postgresMajorVersion: "18"
+
+keyvalues:
+  - name: tamaka-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+envVarGroups:
+  - name: tamaka-jwt-publica
+    envVars:
+      - key: TAMAKA_JWT_PUBLIC_KEY
+        sync: false
 
 services:
   - type: web
@@ -20,6 +31,9 @@ services:
     dockerfilePath: ./cuentas/Dockerfile
     autoDeploy: false
     envVars:
+      - fromGroup: tamaka-jwt-publica
+      - key: TAMAKA_JWT_PRIVATE_KEY
+        sync: false
       - key: DB_HOST
         fromDatabase:
           name: tamaka-cuentas-db
@@ -40,7 +54,221 @@ services:
         fromDatabase:
           name: tamaka-cuentas-db
           property: password
-      - key: TAMAKA_JWT_PRIVATE_KEY
+
+  - type: web
+    name: tamaka-comercios
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./comercios/Dockerfile
+    autoDeploy: false
+    envVars:
+      - fromGroup: tamaka-jwt-publica
+      - key: DB_HOST
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: password
+
+  - type: web
+    name: tamaka-atractivos
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./atractivos/Dockerfile
+    autoDeploy: false
+    envVars:
+      - fromGroup: tamaka-jwt-publica
+      - key: DB_HOST
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: password
+
+  - type: web
+    name: tamaka-eventos
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./eventos/Dockerfile
+    autoDeploy: false
+    envVars:
+      - fromGroup: tamaka-jwt-publica
+      - key: DB_HOST
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: password
+
+  - type: web
+    name: tamaka-reservas
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./reservas/Dockerfile
+    autoDeploy: false
+    envVars:
+      - fromGroup: tamaka-jwt-publica
+      - key: COMERCIOS_URL
+        value: https://tamaka-comercios.onrender.com
+      - key: DB_HOST
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: password
+
+  - type: web
+    name: tamaka-pagos
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./pagos/Dockerfile
+    autoDeploy: false
+    envVars:
+      - fromGroup: tamaka-jwt-publica
+      - key: PAGOS_WEBHOOK_SECRET
         sync: false
-      - key: TAMAKA_JWT_PUBLIC_KEY
-        sync: false
+      - key: DB_HOST
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: password
+
+  - type: web
+    name: tamaka-indicadores
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./indicadores/Dockerfile
+    autoDeploy: false
+    envVars:
+      - fromGroup: tamaka-jwt-publica
+      - key: DB_HOST
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: password
+
+  - type: web
+    name: tamaka-recomendaciones
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./recomendaciones/Dockerfile
+    autoDeploy: false
+    envVars:
+      - fromGroup: tamaka-jwt-publica
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: tamaka-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: tamaka-redis
+          property: port
