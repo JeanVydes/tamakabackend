@@ -1,0 +1,46 @@
+# Blueprint de Render: base PostgreSQL y servicio de Cuentas.
+# DB_HOST, DB_NAME, DB_USER y DB_PASSWORD se enlazan a la base automaticamente (sin copiar y pegar).
+# Las claves JWT son secretas: se introducen en el dashboard (sync: false).
+databases:
+  - name: tamaka-cuentas-db
+    databaseName: tamaka_cuentas
+    user: tamaka_cuentas
+    plan: free
+    region: oregon
+    postgresMajorVersion: "18"
+
+services:
+  - type: web
+    name: tamaka-cuentas
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./cuentas/Dockerfile
+    autoDeploy: false
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tamaka-cuentas-db
+          property: password
+      - key: TAMAKA_JWT_PRIVATE_KEY
+        sync: false
+      - key: TAMAKA_JWT_PUBLIC_KEY
+        sync: false
