@@ -1,4 +1,5 @@
 # Infraestructura local de desarrollo. No es produccion (produccion usa RDS, MongoDB Atlas/cluster y ElastiCache).
+# Para levantar ademas los 10 microservicios y el gateway en una sola maquina: docker-compose.full.yml.
 # Uso: definir las variables antes de levantar:
 #   export POSTGRES_ADMIN_PASSWORD=...   (superusuario local)
 #   export TAMAKA_DB_PASSWORD=...        (clave de los usuarios tamaka_<servicio>)

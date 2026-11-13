@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 public record GuardarFavoritoRequest(
 
         @NotNull
-        @Pattern(regexp = "ATRACTIVO|SERVICIO|EVENTO", message = "debe ser ATRACTIVO, SERVICIO o EVENTO")
+        @Pattern(regexp = "ATRACTIVO|SERVICIO|EVENTO|COMERCIO", message = "debe ser ATRACTIVO, SERVICIO, EVENTO o COMERCIO")
         String tipo,
 
         @NotBlank

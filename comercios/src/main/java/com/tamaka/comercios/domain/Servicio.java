@@ -70,6 +70,29 @@ public class Servicio {
         return new Servicio(comercio, nombre, precioBase, minPersonas, maxPersonas, atributos);
     }
 
+    /**
+     * Actualizacion parcial: los valores nulos conservan el dato actual.
+     * El rango de personas ya validado llega desde el servicio.
+     */
+    public void actualizar(String nombre, BigDecimal precioBase, Integer minPersonas, Integer maxPersonas,
+                           Map<String, Object> atributos) {
+        if (nombre != null) {
+            this.nombre = nombre;
+        }
+        if (precioBase != null) {
+            this.precioBase = precioBase;
+        }
+        if (minPersonas != null) {
+            this.minPersonas = minPersonas;
+        }
+        if (maxPersonas != null) {
+            this.maxPersonas = maxPersonas;
+        }
+        if (atributos != null) {
+            this.atributos = Map.copyOf(atributos);
+        }
+    }
+
     public void cambiarActivo(boolean nuevoEstado) {
         this.activo = nuevoEstado;
     }

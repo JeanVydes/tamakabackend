@@ -14,6 +14,7 @@ public class ReservaMapper {
     public ReservaResponse toResponse(SolicitudReserva reserva) {
         return new ReservaResponse(
                 reserva.getId(),
+                reserva.getTuristaId(),
                 reserva.getServicioId(),
                 reserva.getOperadorId(),
                 reserva.getFechaReserva(),

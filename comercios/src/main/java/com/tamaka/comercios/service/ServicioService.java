@@ -1,5 +1,6 @@
 package com.tamaka.comercios.service;
 
+import com.tamaka.comercios.dto.request.ActualizarServicioRequest;
 import com.tamaka.comercios.dto.request.CambiarActivoRequest;
 import com.tamaka.comercios.dto.response.ServicioResponse;
 
@@ -11,4 +12,7 @@ public interface ServicioService {
     ServicioResponse obtener(Long servicioId);
 
     ServicioResponse cambiarActivo(Long operadorId, Long servicioId, CambiarActivoRequest request);
+
+    /** Actualizacion parcial por el operador dueno; valida el rango de personas resultante. */
+    ServicioResponse actualizar(Long operadorId, Long servicioId, ActualizarServicioRequest request);
 }

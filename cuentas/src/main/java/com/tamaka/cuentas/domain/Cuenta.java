@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import com.tamaka.cuentas.exception.CuentaYaSuspendidaException;
+import com.tamaka.cuentas.exception.ModoOperadorNoHabilitadoException;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -89,6 +90,38 @@ public class Cuenta {
         if (rol == Rol.OPERADOR) {
             this.modoOperador = true;
         }
+    }
+
+    /**
+     * Habilita el rol OPERADOR (si no lo tenia) y deja la cuenta en modo operador.
+     * Devuelve true si el rol se agrego en esta operacion (para publicar RolCambiado una sola vez).
+     */
+    public boolean activarModoOperador() {
+        boolean nuevo = !roles.contains(Rol.OPERADOR);
+        agregarRol(Rol.OPERADOR);
+        return nuevo;
+    }
+
+    /**
+     * Alterna entre modo turista y modo operador. Pasar a modo operador exige tener el rol habilitado.
+     */
+    public void cambiarModo(boolean operador) {
+        if (operador && !roles.contains(Rol.OPERADOR)) {
+            throw new ModoOperadorNoHabilitadoException(id);
+        }
+        this.modoOperador = operador;
+    }
+
+    /**
+     * Roles que viajan en el token: en modo turista se omite OPERADOR, de modo que las rutas de operador
+     * solo estan disponibles mientras el usuario trabaja en ese modo.
+     */
+    public Set<Rol> rolesActivos() {
+        EnumSet<Rol> activos = roles.isEmpty() ? EnumSet.noneOf(Rol.class) : EnumSet.copyOf(roles);
+        if (!modoOperador) {
+            activos.remove(Rol.OPERADOR);
+        }
+        return Set.copyOf(activos);
     }
 
     public Long getId() {

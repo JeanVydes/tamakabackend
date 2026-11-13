@@ -33,7 +33,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/eventos").permitAll()
+                        // Bus de eventos interno: se autentica con el secreto compartido, no con JWT.
+                        .requestMatchers(HttpMethod.POST, "/internal/eventos").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/eventos", "/api/eventos/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(errores -> errores

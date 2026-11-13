@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tamaka.comercios.dto.request.ActualizarServicioRequest;
 import com.tamaka.comercios.dto.request.CambiarActivoRequest;
 import com.tamaka.comercios.dto.response.ServicioResponse;
 import com.tamaka.comercios.service.ServicioService;
@@ -29,6 +30,14 @@ public class ServicioController {
     @GetMapping("/{id}")
     public ResponseEntity<ServicioResponse> obtener(@PathVariable Long id) {
         return ResponseEntity.ok(servicioService.obtener(id));
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('OPERADOR')")
+    public ResponseEntity<ServicioResponse> actualizar(Authentication authentication,
+                                                       @PathVariable Long id,
+                                                       @Valid @RequestBody ActualizarServicioRequest request) {
+        return ResponseEntity.ok(servicioService.actualizar(Long.valueOf(authentication.getName()), id, request));
     }
 
     @PatchMapping("/{id}/activo")

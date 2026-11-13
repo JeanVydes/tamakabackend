@@ -1,6 +1,11 @@
 package com.tamaka.recomendaciones.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -34,7 +39,8 @@ class RecomendacionServiceImplTest {
 
         List<Long> resultado = recomendacionService.recomendar("ATRACTIVO", 1L);
 
-        assertThat(resultado).containsExactly(4L, 9L);
+        // Set.of no garantiza orden de iteracion: se verifica el contenido, no el orden.
+        assertThat(resultado).containsExactlyInAnyOrder(4L, 9L);
     }
 
     @Test
@@ -43,5 +49,20 @@ class RecomendacionServiceImplTest {
         when(repository.masRecientes("EVENTO", 10)).thenReturn(List.of("7", "3"));
 
         assertThat(recomendacionService.recomendar("EVENTO", 2L)).containsExactly(7L, 3L);
+    }
+
+    @Test
+    void atractivoCerradoDejaDeRecomendarse() {
+        recomendacionService.registrarAtractivo(4L, "PLAYA", "CERRADO");
+
+        verify(repository).retirarItem("ATRACTIVO", 4L);
+        verify(repository, never()).registrarItem(any(), any(), any(), anyDouble());
+    }
+
+    @Test
+    void eventoSinCategoriaQuedaEnGeneral() {
+        recomendacionService.registrarItem("EVENTO", 8L, null);
+
+        verify(repository).registrarItem(eq("EVENTO"), eq(8L), eq("GENERAL"), anyDouble());
     }
 }

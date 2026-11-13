@@ -16,3 +16,12 @@ tamaka:
       public-key: ${TAMAKA_JWT_PUBLIC_KEY:}
   recomendaciones:
     limite: 10
+  # Bus de eventos (tamaka-common). "http": POST a /internal/eventos de cada suscriptor;
+  # "log": solo registra. El secreto debe ser el mismo en todos los servicios (vacio = fail closed).
+  eventos:
+    transporte: ${TAMAKA_EVENTOS_TRANSPORTE:http}
+    secreto: ${TAMAKA_EVENTOS_SECRETO:}
+    timeout: 5s
+    reintentos: 3
+    # Este servicio solo consume eventos: no publica a ningun suscriptor.
+    suscriptores: {}

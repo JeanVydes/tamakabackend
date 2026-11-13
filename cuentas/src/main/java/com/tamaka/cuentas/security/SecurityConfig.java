@@ -39,7 +39,11 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/cuentas", "/api/auth/login").permitAll()
+                        // Bus de eventos interno: se autentica con el secreto compartido, no con JWT.
+                        .requestMatchers(HttpMethod.POST, "/internal/eventos").permitAll()
+                        // refresh y logout se autentican con el refresh token del cuerpo, no con el access token.
+                        .requestMatchers(HttpMethod.POST, "/api/cuentas", "/api/auth/login",
+                                "/api/auth/refresh", "/api/auth/logout").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)

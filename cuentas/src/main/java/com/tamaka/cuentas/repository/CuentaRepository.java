@@ -1,5 +1,6 @@
 package com.tamaka.cuentas.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -15,6 +16,10 @@ public interface CuentaRepository extends JpaRepository<Cuenta, Long> {
 
     @EntityGraph(attributePaths = "roles")
     Optional<Cuenta> findByEmail(String email);
+
+    /** Listado de administracion con los roles en la misma consulta (evita N+1). */
+    @EntityGraph(attributePaths = "roles")
+    List<Cuenta> findAllByOrderByCreadaEnDesc();
 
     @Query("select c from Cuenta c left join fetch c.roles where c.id = :id")
     Optional<Cuenta> findConRolesPorId(@Param("id") Long id);

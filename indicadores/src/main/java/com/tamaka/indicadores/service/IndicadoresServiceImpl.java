@@ -40,8 +40,12 @@ public class IndicadoresServiceImpl implements IndicadoresService {
 
     @Override
     @Transactional
-    public void registrarHecho(String tipo, Long operadorId, Long referenciaId, Instant ocurridoEn) {
+    public boolean registrarHecho(String tipo, Long operadorId, Long referenciaId, Instant ocurridoEn) {
+        if (repository.existsByTipoAndReferenciaId(tipo, referenciaId)) {
+            return false;
+        }
         repository.save(new RegistroDemanda(tipo, operadorId, referenciaId, ocurridoEn));
+        return true;
     }
 
     private static void validarRango(LocalDate desde, LocalDate hasta) {

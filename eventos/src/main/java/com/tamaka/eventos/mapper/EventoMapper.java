@@ -17,6 +17,7 @@ public class EventoMapper {
                 evento.getTitulo(),
                 evento.getDescripcion(),
                 evento.getLugar(),
+                evento.getCategoria(),
                 evento.getFechaInicio(),
                 evento.getFechaFin(),
                 evento.isActivo());

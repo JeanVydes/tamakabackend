@@ -5,30 +5,28 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import com.tamaka.common.security.JwtService;
 import com.tamaka.cuentas.dto.request.LoginRequest;
 import com.tamaka.cuentas.dto.response.TokenResponse;
+import com.tamaka.cuentas.service.SesionService;
 
 /**
- * Login: verifica credenciales con el AuthenticationManager y emite el access token RS256.
- * Solo Cuentas emite tokens.
+ * Login: verifica credenciales con el AuthenticationManager y abre una sesion (access token RS256 + refresh token).
  */
 @Service
 public class AuthenticationService {
 
     private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
+    private final SesionService sesionService;
 
-    public AuthenticationService(AuthenticationManager authenticationManager, JwtService jwtService) {
+    public AuthenticationService(AuthenticationManager authenticationManager, SesionService sesionService) {
         this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
+        this.sesionService = sesionService;
     }
 
     public TokenResponse login(LoginRequest request) {
         Authentication autenticacion = authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken.unauthenticated(request.email().trim(), request.password()));
         CuentaPrincipal principal = (CuentaPrincipal) autenticacion.getPrincipal();
-        String token = jwtService.issue(String.valueOf(principal.getId()), principal.getRolesNombres());
-        return new TokenResponse(token, "Bearer", jwtService.accessTokenTtlSeconds());
+        return sesionService.abrirSesion(principal.getId(), principal.getRolesNombres(), false);
     }
 }

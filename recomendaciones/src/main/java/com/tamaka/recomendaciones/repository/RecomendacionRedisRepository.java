@@ -18,6 +18,7 @@ public class RecomendacionRedisRepository {
     private static final String PREFIJO_ITEMS = "reco:items:";
     private static final String PREFIJO_CATEGORIA = "reco:cat:";
     private static final String PREFIJO_PREFERENCIAS = "reco:pref:";
+    private static final String PREFIJO_CATEGORIA_DE_ITEM = "reco:itemcat:";
 
     private final StringRedisTemplate redis;
 
@@ -26,8 +27,26 @@ public class RecomendacionRedisRepository {
     }
 
     public void registrarItem(String tipo, Long itemId, String categoria, double marcaTiempo) {
-        redis.opsForZSet().add(PREFIJO_ITEMS + tipo, itemId.toString(), marcaTiempo);
-        redis.opsForSet().add(PREFIJO_CATEGORIA + tipo + ":" + categoria, itemId.toString());
+        String id = itemId.toString();
+        // Si el item cambio de categoria, sale del conjunto anterior.
+        Object anterior = redis.opsForHash().get(PREFIJO_CATEGORIA_DE_ITEM + tipo, id);
+        if (anterior != null && !anterior.toString().equals(categoria)) {
+            redis.opsForSet().remove(PREFIJO_CATEGORIA + tipo + ":" + anterior, id);
+        }
+        redis.opsForZSet().add(PREFIJO_ITEMS + tipo, id, marcaTiempo);
+        redis.opsForSet().add(PREFIJO_CATEGORIA + tipo + ":" + categoria, id);
+        redis.opsForHash().put(PREFIJO_CATEGORIA_DE_ITEM + tipo, id, categoria);
+    }
+
+    /** Quita un item de la proyeccion (cerrado o desactivado). Idempotente. */
+    public void retirarItem(String tipo, Long itemId) {
+        String id = itemId.toString();
+        Object categoria = redis.opsForHash().get(PREFIJO_CATEGORIA_DE_ITEM + tipo, id);
+        if (categoria != null) {
+            redis.opsForSet().remove(PREFIJO_CATEGORIA + tipo + ":" + categoria, id);
+        }
+        redis.opsForZSet().remove(PREFIJO_ITEMS + tipo, id);
+        redis.opsForHash().delete(PREFIJO_CATEGORIA_DE_ITEM + tipo, id);
     }
 
     public void reemplazarPreferencias(Long turistaId, Collection<String> categorias) {

@@ -7,6 +7,7 @@ public record EventoResponse(
         String titulo,
         String descripcion,
         String lugar,
+        String categoria,
         LocalDate fechaInicio,
         LocalDate fechaFin,
         boolean activo

@@ -14,6 +14,23 @@ envVarGroups:
       - key: TAMAKA_JWT_PUBLIC_KEY
         sync: false
 
+  - name: tamaka-eventos
+    # Bus de eventos HTTP: mismo secreto en todos los servicios y URLs publicas de los consumidores.
+    # Preferencias y Notificaciones (MongoDB) aun no se despliegan aqui: sus entregas fallan y se registran en el log.
+    envVars:
+      - key: TAMAKA_EVENTOS_SECRETO
+        sync: false
+      - key: COMERCIOS_URL
+        value: https://tamaka-comercios.onrender.com
+      - key: RESERVAS_URL
+        value: https://tamaka-reservas.onrender.com
+      - key: PAGOS_URL
+        value: https://tamaka-pagos.onrender.com
+      - key: RECOMENDACIONES_URL
+        value: https://tamaka-recomendaciones.onrender.com
+      - key: INDICADORES_URL
+        value: https://tamaka-indicadores.onrender.com
+
 services:
   - type: keyvalue
     name: tamaka-redis
@@ -33,6 +50,7 @@ services:
     autoDeploy: false
     envVars:
       - fromGroup: tamaka-jwt-publica
+      - fromGroup: tamaka-eventos
       - key: TAMAKA_JWT_PRIVATE_KEY
         sync: false
       - key: DB_HOST
@@ -67,6 +85,7 @@ services:
     autoDeploy: false
     envVars:
       - fromGroup: tamaka-jwt-publica
+      - fromGroup: tamaka-eventos
       - key: DB_HOST
         fromDatabase:
           name: tamaka-cuentas-db
@@ -99,6 +118,7 @@ services:
     autoDeploy: false
     envVars:
       - fromGroup: tamaka-jwt-publica
+      - fromGroup: tamaka-eventos
       - key: DB_HOST
         fromDatabase:
           name: tamaka-cuentas-db
@@ -131,6 +151,7 @@ services:
     autoDeploy: false
     envVars:
       - fromGroup: tamaka-jwt-publica
+      - fromGroup: tamaka-eventos
       - key: DB_HOST
         fromDatabase:
           name: tamaka-cuentas-db
@@ -163,6 +184,7 @@ services:
     autoDeploy: false
     envVars:
       - fromGroup: tamaka-jwt-publica
+      - fromGroup: tamaka-eventos
       - key: COMERCIOS_URL
         value: https://tamaka-comercios.onrender.com
       - key: DB_HOST
@@ -197,6 +219,7 @@ services:
     autoDeploy: false
     envVars:
       - fromGroup: tamaka-jwt-publica
+      - fromGroup: tamaka-eventos
       - key: PAGOS_WEBHOOK_SECRET
         sync: false
       - key: DB_HOST
@@ -231,6 +254,7 @@ services:
     autoDeploy: false
     envVars:
       - fromGroup: tamaka-jwt-publica
+      - fromGroup: tamaka-eventos
       - key: DB_HOST
         fromDatabase:
           name: tamaka-cuentas-db
@@ -263,6 +287,7 @@ services:
     autoDeploy: false
     envVars:
       - fromGroup: tamaka-jwt-publica
+      - fromGroup: tamaka-eventos
       - key: REDIS_HOST
         fromService:
           type: keyvalue

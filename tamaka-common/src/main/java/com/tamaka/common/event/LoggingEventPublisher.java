@@ -2,13 +2,11 @@ package com.tamaka.common.event;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
- * Adaptador por defecto: registra el evento en el log sin datos personales.
- * Pendiente: adaptador SNS (publicacion) y listeners SQS (consumo) en la fase de integracion.
+ * Adaptador de respaldo: registra el evento en el log sin datos personales.
+ * Se usa con {@code tamaka.eventos.transporte=log} y cuando un tipo de evento no tiene suscriptores configurados.
  */
-@Component
 public class LoggingEventPublisher implements EventPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingEventPublisher.class);

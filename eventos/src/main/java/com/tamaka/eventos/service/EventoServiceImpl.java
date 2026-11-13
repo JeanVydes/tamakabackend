@@ -36,31 +36,38 @@ public class EventoServiceImpl implements EventoService {
     @Transactional
     public EventoResponse publicar(Long gestorId, PublicarEventoRequest request) {
         Evento evento = Evento.publicar(request.titulo().trim(), request.descripcion(), request.lugar().trim(),
-                request.fechaInicio(), request.fechaFin(), gestorId);
+                request.categoria(), request.fechaInicio(), request.fechaFin(), gestorId);
         Evento guardado = eventoRepository.save(evento);
-        eventPublisher.publicar(DomainEvent.de("EventoPublicado", guardado.getId(),
-                Map.of("fechaInicio", guardado.getFechaInicio().toString())));
+        eventPublisher.publicar(DomainEvent.de("EventoPublicado", guardado.getId(), Map.of(
+                "categoria", guardado.getCategoria(),
+                "fechaInicio", guardado.getFechaInicio().toString(),
+                "fechaFin", guardado.getFechaFin().toString())));
         return eventoMapper.toResponse(guardado);
     }
 
     @Override
     @Transactional
     public EventoResponse actualizar(Long eventoId, PublicarEventoRequest request) {
-        Evento evento = obtener(eventoId);
+        Evento evento = obtenerEntidad(eventoId);
         evento.actualizar(request.titulo().trim(), request.descripcion(), request.lugar().trim(),
-                request.fechaInicio(), request.fechaFin());
+                request.categoria(), request.fechaInicio(), request.fechaFin());
         return eventoMapper.toResponse(evento);
     }
 
     @Override
     @Transactional
     public EventoResponse desactivar(Long eventoId) {
-        Evento evento = obtener(eventoId);
+        Evento evento = obtenerEntidad(eventoId);
         if (evento.isActivo()) {
             evento.desactivar();
             eventPublisher.publicar(DomainEvent.de("EventoDesactivado", eventoId, Map.of()));
         }
         return eventoMapper.toResponse(evento);
+    }
+
+    @Override
+    public EventoResponse obtener(Long eventoId) {
+        return eventoMapper.toResponse(obtenerEntidad(eventoId));
     }
 
     @Override
@@ -71,7 +78,7 @@ public class EventoServiceImpl implements EventoService {
                 .toList();
     }
 
-    private Evento obtener(Long eventoId) {
+    private Evento obtenerEntidad(Long eventoId) {
         return eventoRepository.findById(eventoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Evento", eventoId));
     }

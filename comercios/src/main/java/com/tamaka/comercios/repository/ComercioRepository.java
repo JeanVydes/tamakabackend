@@ -12,6 +12,8 @@ public interface ComercioRepository extends JpaRepository<Comercio, Long> {
 
     boolean existsByRnt(String rnt);
 
+    List<Comercio> findByOperadorId(Long operadorId);
+
     /**
      * Busqueda del catalogo publico. Los parametros vacios significan "sin filtro"
      * (evita parametros nulos en PostgreSQL).

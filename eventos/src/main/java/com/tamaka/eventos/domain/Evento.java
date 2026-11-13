@@ -20,6 +20,8 @@ import jakarta.persistence.Table;
 @Table(name = "evento")
 public class Evento {
 
+    public static final String CATEGORIA_POR_DEFECTO = "GENERAL";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -32,6 +34,9 @@ public class Evento {
 
     @Column(nullable = false, length = 200)
     private String lugar;
+
+    @Column(nullable = false, length = 60)
+    private String categoria;
 
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDate fechaInicio;
@@ -51,7 +56,7 @@ public class Evento {
     protected Evento() {
     }
 
-    private Evento(String titulo, String descripcion, String lugar,
+    private Evento(String titulo, String descripcion, String lugar, String categoria,
                    LocalDate fechaInicio, LocalDate fechaFin, Long gestorId) {
         if (fechaFin.isBefore(fechaInicio)) {
             throw new RangoFechasInvalidoException(fechaInicio, fechaFin);
@@ -59,6 +64,7 @@ public class Evento {
         this.titulo = titulo;
         this.descripcion = descripcion;
         this.lugar = lugar;
+        this.categoria = categoria;
         this.fechaInicio = fechaInicio;
         this.fechaFin = fechaFin;
         this.gestorId = gestorId;
@@ -68,7 +74,20 @@ public class Evento {
 
     public static Evento publicar(String titulo, String descripcion, String lugar,
                                   LocalDate fechaInicio, LocalDate fechaFin, Long gestorId) {
-        return new Evento(titulo, descripcion, lugar, fechaInicio, fechaFin, gestorId);
+        return publicar(titulo, descripcion, lugar, CATEGORIA_POR_DEFECTO, fechaInicio, fechaFin, gestorId);
+    }
+
+    public static Evento publicar(String titulo, String descripcion, String lugar, String categoria,
+                                  LocalDate fechaInicio, LocalDate fechaFin, Long gestorId) {
+        return new Evento(titulo, descripcion, lugar, normalizarCategoria(categoria), fechaInicio, fechaFin, gestorId);
+    }
+
+    public void actualizar(String titulo, String descripcion, String lugar, String categoria,
+                           LocalDate fechaInicio, LocalDate fechaFin) {
+        actualizar(titulo, descripcion, lugar, fechaInicio, fechaFin);
+        if (categoria != null && !categoria.isBlank()) {
+            this.categoria = normalizarCategoria(categoria);
+        }
     }
 
     public void actualizar(String titulo, String descripcion, String lugar,
@@ -101,6 +120,14 @@ public class Evento {
 
     public String getLugar() {
         return lugar;
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    private static String normalizarCategoria(String categoria) {
+        return categoria == null || categoria.isBlank() ? CATEGORIA_POR_DEFECTO : categoria.trim();
     }
 
     public LocalDate getFechaInicio() {

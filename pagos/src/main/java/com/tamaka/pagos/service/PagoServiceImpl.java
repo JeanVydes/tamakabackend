@@ -2,6 +2,7 @@ package com.tamaka.pagos.service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +22,7 @@ import com.tamaka.pagos.domain.ReservaPagable;
 import com.tamaka.pagos.dto.request.IniciarPagoRequest;
 import com.tamaka.pagos.dto.request.WebhookPasarelaRequest;
 import com.tamaka.pagos.dto.response.ComprobanteResponse;
+import com.tamaka.pagos.dto.response.PagoDetalleResponse;
 import com.tamaka.pagos.dto.response.PagoResponse;
 import com.tamaka.pagos.exception.MontoWebhookNoCoincideException;
 import com.tamaka.pagos.exception.ReservaNoPagableException;
@@ -82,7 +84,7 @@ public class PagoServiceImpl implements PagoService {
 
         String referencia = "TMK-" + UUID.randomUUID();
         Pago pago = pagoRepository.save(
-                Pago.iniciar(reservaId, turistaId, reserva.getValorAPagar(), referencia, ahora));
+                Pago.iniciar(reservaId, turistaId, reserva.getOperadorId(), reserva.getValorAPagar(), referencia, ahora));
         String urlPago = pasarela.crearCheckout(referencia, pago.getMonto());
         return pagoMapper.toResponse(pago, urlPago);
     }
@@ -124,23 +126,24 @@ public class PagoServiceImpl implements PagoService {
             // Idempotencia: un webhook repetido no vuelve a publicar el evento.
             if (pago.aprobar(Instant.now())) {
                 pagoRepository.saveAndFlush(pago);
-                eventPublisher.publicar(DomainEvent.de("PagoAprobado", pago.getId(), Map.of(
-                        "reservaId", pago.getReservaId(),
-                        "turistaId", pago.getTuristaId(),
-                        "monto", pago.getMonto())));
+                eventPublisher.publicar(DomainEvent.de("PagoAprobado", pago.getId(), datosDelPago(pago)));
             }
         } else if (pago.getEstado() == EstadoPago.PENDIENTE) {
             pago.rechazar();
             pagoRepository.save(pago);
-            eventPublisher.publicar(DomainEvent.de("PagoRechazado", pago.getId(), Map.of(
-                    "reservaId", pago.getReservaId())));
+            eventPublisher.publicar(DomainEvent.de("PagoRechazado", pago.getId(), datosDelPago(pago)));
         }
     }
 
     @Override
     @Transactional
-    public void registrarReservaAceptada(Long reservaId, Long turistaId, BigDecimal valorAPagar, Instant plazoPago) {
-        reservaPagableRepository.save(new ReservaPagable(reservaId, turistaId, valorAPagar, plazoPago));
+    public void registrarReservaAceptada(Long reservaId, Long turistaId, Long operadorId,
+                                         BigDecimal valorAPagar, Instant plazoPago) {
+        // Idempotente: una reentrega del evento no sobrescribe la proyeccion (podria estar ya cancelada).
+        if (reservaPagableRepository.existsById(reservaId)) {
+            return;
+        }
+        reservaPagableRepository.save(new ReservaPagable(reservaId, turistaId, operadorId, valorAPagar, plazoPago));
     }
 
     @Override
@@ -163,9 +166,34 @@ public class PagoServiceImpl implements PagoService {
             pasarela.reembolsar(pago.getReferenciaPasarela(), pago.getMonto());
             pago.reembolsar();
             pagoRepository.save(pago);
-            eventPublisher.publicar(DomainEvent.de("ReembolsoRegistrado", pago.getId(), Map.of(
-                    "reservaId", reservaId,
-                    "monto", pago.getMonto())));
+            eventPublisher.publicar(DomainEvent.de("ReembolsoRegistrado", pago.getId(), datosDelPago(pago)));
         });
+    }
+
+    @Override
+    public List<PagoDetalleResponse> pagosDelOperador(Long operadorId) {
+        return pagoRepository.findByOperadorIdOrderByCreadoEnDesc(operadorId).stream()
+                .map(pagoMapper::toDetalle)
+                .toList();
+    }
+
+    @Override
+    public List<PagoDetalleResponse> listarTodos(EstadoPago estado) {
+        List<Pago> pagos = estado == null
+                ? pagoRepository.findAllByOrderByCreadoEnDesc()
+                : pagoRepository.findByEstadoOrderByCreadoEnDesc(estado);
+        return pagos.stream().map(pagoMapper::toDetalle).toList();
+    }
+
+    /** Payload comun de los eventos de pago: ids y monto como texto (sin datos de tarjeta, PCI DSS). */
+    private static Map<String, Object> datosDelPago(Pago pago) {
+        Map<String, Object> datos = new HashMap<>();
+        datos.put("reservaId", pago.getReservaId());
+        datos.put("turistaId", pago.getTuristaId());
+        if (pago.getOperadorId() != null) {
+            datos.put("operadorId", pago.getOperadorId());
+        }
+        datos.put("monto", pago.getMonto().toPlainString());
+        return datos;
     }
 }

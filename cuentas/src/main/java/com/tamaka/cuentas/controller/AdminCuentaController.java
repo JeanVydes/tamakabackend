@@ -1,7 +1,10 @@
 package com.tamaka.cuentas.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -24,6 +27,16 @@ public class AdminCuentaController {
 
     public AdminCuentaController(CuentaService cuentaService) {
         this.cuentaService = cuentaService;
+    }
+
+    @GetMapping
+    public ResponseEntity<List<CuentaResponse>> listar() {
+        return ResponseEntity.ok(cuentaService.listar());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CuentaResponse> detalle(@PathVariable Long id) {
+        return ResponseEntity.ok(cuentaService.buscarPorId(id));
     }
 
     @PatchMapping("/{id}/suspension")

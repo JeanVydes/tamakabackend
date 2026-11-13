@@ -4,9 +4,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import com.tamaka.pagos.domain.EstadoPago;
 import com.tamaka.pagos.dto.request.IniciarPagoRequest;
 import com.tamaka.pagos.dto.request.WebhookPasarelaRequest;
 import com.tamaka.pagos.dto.response.ComprobanteResponse;
+import com.tamaka.pagos.dto.response.PagoDetalleResponse;
 import com.tamaka.pagos.dto.response.PagoResponse;
 
 /**
@@ -23,8 +25,15 @@ public interface PagoService {
     /** Webhook de la pasarela. Verifica la firma antes de procesar; es idempotente. */
     void procesarWebhook(String firma, WebhookPasarelaRequest request);
 
-    /** Evento ReservaAceptada. */
-    void registrarReservaAceptada(Long reservaId, Long turistaId, BigDecimal valorAPagar, Instant plazoPago);
+    /** Pagos del operador autenticado (solo los de sus servicios). */
+    List<PagoDetalleResponse> pagosDelOperador(Long operadorId);
+
+    /** Reporte de administracion, opcionalmente filtrado por estado. */
+    List<PagoDetalleResponse> listarTodos(EstadoPago estado);
+
+    /** Evento ReservaAceptada. Idempotente. */
+    void registrarReservaAceptada(Long reservaId, Long turistaId, Long operadorId,
+                                  BigDecimal valorAPagar, Instant plazoPago);
 
     /** Evento ReservaCancelada. */
     void registrarReservaCancelada(Long reservaId);

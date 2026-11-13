@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tamaka.comercios.dto.request.ActualizarComercioRequest;
 import com.tamaka.comercios.dto.request.CrearComercioRequest;
 import com.tamaka.comercios.dto.request.CrearServicioRequest;
+import com.tamaka.comercios.dto.response.ComercioDetalleResponse;
 import com.tamaka.comercios.dto.response.ComercioResponse;
 import com.tamaka.comercios.dto.response.ServicioResponse;
 import com.tamaka.comercios.service.ComercioService;
@@ -39,6 +40,11 @@ public class ComercioController {
             @RequestParam(name = "categoria", required = false) String categoria,
             @RequestParam(name = "q", required = false) String q) {
         return ResponseEntity.ok(comercioService.buscar(categoria, q));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ComercioDetalleResponse> obtener(@PathVariable Long id) {
+        return ResponseEntity.ok(comercioService.obtener(id));
     }
 
     @PostMapping

@@ -15,6 +15,9 @@ public interface IndicadoresService {
 
     List<ConteoResponse> indicadoresDelOperador(Long operadorId, LocalDate desde, LocalDate hasta);
 
-    /** Registro desde un evento de dominio (ReservaSolicitada, PagoAprobado, ReservaCancelada). */
-    void registrarHecho(String tipo, Long operadorId, Long referenciaId, Instant ocurridoEn);
+    /**
+     * Registro desde un evento de dominio (ReservaSolicitada, PagoAprobado, ReservaCancelada).
+     * Idempotente: devuelve false si el hecho ya estaba registrado (reentrega del bus).
+     */
+    boolean registrarHecho(String tipo, Long operadorId, Long referenciaId, Instant ocurridoEn);
 }

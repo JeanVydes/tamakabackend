@@ -1,7 +1,9 @@
 package com.tamaka.preferencias.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,5 +64,27 @@ class PreferenciasServiceImplTest {
                 .isInstanceOf(AccessDeniedException.class);
 
         verify(favoritoRepository, never()).delete(any());
+    }
+
+    @Test
+    void guardaFavoritoDeComercioYPublicaConTurista() {
+        when(favoritoRepository.existsByTuristaIdAndTipoAndRefId(1L, "COMERCIO", "3")).thenReturn(false);
+        when(favoritoRepository.save(any(Favorito.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var guardado = preferenciasService.guardarFavorito(1L, new GuardarFavoritoRequest("COMERCIO", "3"));
+
+        assertThat(guardado.tipo()).isEqualTo("COMERCIO");
+        verify(eventPublisher).publicar(argThat(e -> "FavoritoGuardado".equals(e.tipo())
+                && Long.valueOf(1L).equals(e.datoLong("turistaId"))));
+    }
+
+    @Test
+    void eliminarFavoritoPublicaFavoritoEliminado() {
+        when(favoritoRepository.findById("f1")).thenReturn(Optional.of(new Favorito(1L, "ATRACTIVO", "4")));
+
+        preferenciasService.eliminarFavorito(1L, "f1");
+
+        verify(eventPublisher).publicar(argThat(e -> "FavoritoEliminado".equals(e.tipo())
+                && "4".equals(e.datoTexto("refId"))));
     }
 }

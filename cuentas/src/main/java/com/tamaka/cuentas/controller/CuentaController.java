@@ -5,13 +5,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tamaka.cuentas.dto.request.CambiarModoRequest;
 import com.tamaka.cuentas.dto.request.RegistrarCuentaRequest;
 import com.tamaka.cuentas.dto.response.CuentaResponse;
+import com.tamaka.cuentas.dto.response.SesionResponse;
 import com.tamaka.cuentas.service.CuentaService;
 
 import jakarta.validation.Valid;
@@ -36,9 +39,17 @@ public class CuentaController {
         return ResponseEntity.ok(cuentaService.buscarPorId(Long.valueOf(authentication.getName())));
     }
 
+    /** Habilita el rol OPERADOR. Devuelve un token nuevo: el cliente debe reemplazar el anterior. */
     @PostMapping("/me/modo-operador")
     @PreAuthorize("hasRole('TURISTA')")
-    public ResponseEntity<CuentaResponse> activarModoOperador(Authentication authentication) {
+    public ResponseEntity<SesionResponse> activarModoOperador(Authentication authentication) {
         return ResponseEntity.ok(cuentaService.activarModoOperador(Long.valueOf(authentication.getName())));
+    }
+
+    /** Alterna modo turista / operador. Devuelve un token nuevo con los roles del modo elegido. */
+    @PatchMapping("/me/modo")
+    public ResponseEntity<SesionResponse> cambiarModo(Authentication authentication,
+                                                      @Valid @RequestBody CambiarModoRequest request) {
+        return ResponseEntity.ok(cuentaService.cambiarModo(Long.valueOf(authentication.getName()), request));
     }
 }

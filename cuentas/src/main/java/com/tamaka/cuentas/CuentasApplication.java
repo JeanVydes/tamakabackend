@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication(scanBasePackages = {"com.tamaka.cuentas", "com.tamaka.common"})
-@ConfigurationPropertiesScan("com.tamaka.common.security")
+@ConfigurationPropertiesScan({"com.tamaka.common.security", "com.tamaka.cuentas"})
 public class CuentasApplication {
 
     public static void main(String[] args) {

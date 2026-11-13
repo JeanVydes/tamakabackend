@@ -29,7 +29,8 @@ public class CuentaPrincipal implements UserDetails {
         this.email = cuenta.getEmail();
         this.passwordHash = cuenta.getPasswordHash();
         this.activa = cuenta.isActiva();
-        this.roles = cuenta.getRoles();
+        // Solo los roles del modo activo (sin OPERADOR mientras la cuenta esta en modo turista).
+        this.roles = cuenta.rolesActivos();
     }
 
     public Long getId() {

@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
- * Favorito del turista sobre un atractivo, servicio o evento. Un mismo elemento no se guarda dos veces.
+ * Favorito del turista sobre un atractivo, servicio, evento o comercio. Un mismo elemento no se guarda dos veces.
  */
 @Document(collection = "favoritos")
 @CompoundIndex(name = "uk_favorito_turista_tipo_ref", def = "{'turistaId': 1, 'tipo': 1, 'refId': 1}", unique = true)

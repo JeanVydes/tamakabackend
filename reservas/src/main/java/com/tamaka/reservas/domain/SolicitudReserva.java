@@ -117,6 +117,32 @@ public class SolicitudReserva {
         return true;
     }
 
+    /** true si el pago ya fue aplicado (CONFIRMADA o FINALIZADA): un PagoAprobado repetido no es un pago tardio. */
+    public boolean pagoYaAplicado() {
+        return estado == EstadoReserva.CONFIRMADA || estado == EstadoReserva.FINALIZADA;
+    }
+
+    /**
+     * Cancelacion por decision del operador: solo sobre solicitudes que ya acepto (ACEPTADA o CONFIRMADA).
+     * Una solicitud PENDIENTE se rechaza, no se cancela.
+     */
+    public void cancelarPorOperador() {
+        if (estado != EstadoReserva.ACEPTADA && estado != EstadoReserva.CONFIRMADA) {
+            throw new TransicionReservaInvalidaException(id, estado, EstadoReserva.CANCELADA);
+        }
+        this.estado = EstadoReserva.CANCELADA;
+    }
+
+    /** El servicio se desactivo: solo se cancelan las solicitudes aun no pagadas (PENDIENTE o ACEPTADA). */
+    public boolean afectadaPorServicioInactivo() {
+        return estado == EstadoReserva.PENDIENTE || estado == EstadoReserva.ACEPTADA;
+    }
+
+    /** CONFIRMADA cuya fecha de servicio ya paso: debe pasar a FINALIZADA. */
+    public boolean concluidaAntesDe(LocalDate hoy) {
+        return estado == EstadoReserva.CONFIRMADA && fechaReserva.isBefore(hoy);
+    }
+
     /** Cancela desde PENDIENTE, ACEPTADA o CONFIRMADA. */
     public void cancelar() {
         if (estado != EstadoReserva.PENDIENTE && estado != EstadoReserva.ACEPTADA

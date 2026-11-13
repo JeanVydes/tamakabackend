@@ -21,6 +21,10 @@ public record PublicarEventoRequest(
         @Size(max = 200)
         String lugar,
 
+        /** Opcional: si se omite, el evento queda en la categoria GENERAL. */
+        @Size(max = 60)
+        String categoria,
+
         @NotNull
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         LocalDate fechaInicio,

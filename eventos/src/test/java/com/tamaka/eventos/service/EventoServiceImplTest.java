@@ -37,7 +37,7 @@ class EventoServiceImplTest {
 
     @Test
     void rechazaEventoCuyaFechaFinEsAnteriorAlInicio() {
-        var request = new PublicarEventoRequest("Festival", null, "Plaza",
+        var request = new PublicarEventoRequest("Festival", null, "Plaza", "CULTURA",
                 LocalDate.of(2026, 12, 10), LocalDate.of(2026, 12, 1));
 
         assertThatThrownBy(() -> eventoService.publicar(5L, request))

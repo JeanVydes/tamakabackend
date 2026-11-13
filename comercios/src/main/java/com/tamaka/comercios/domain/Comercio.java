@@ -65,6 +65,11 @@ public class Comercio {
         this.descripcion = descripcion;
     }
 
+    /** Retira el comercio del catalogo publico (p. ej., cuenta del operador suspendida). */
+    public void desactivar() {
+        this.activo = false;
+    }
+
     public boolean esDe(Long operadorId) {
         return this.operadorId.equals(operadorId);
     }

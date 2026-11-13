@@ -6,6 +6,7 @@ import java.time.LocalDate;
 
 public record ReservaResponse(
         Long id,
+        Long turistaId,
         Long servicioId,
         Long operadorId,
         LocalDate fechaReserva,

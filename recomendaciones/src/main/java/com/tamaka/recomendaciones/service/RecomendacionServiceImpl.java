@@ -18,6 +18,10 @@ import com.tamaka.recomendaciones.repository.RecomendacionRedisRepository;
 @Service
 public class RecomendacionServiceImpl implements RecomendacionService {
 
+    static final String TIPO_ATRACTIVO = "ATRACTIVO";
+    static final String ESTADO_CERRADO = "CERRADO";
+    static final String CATEGORIA_POR_DEFECTO = "GENERAL";
+
     private final RecomendacionRedisRepository repository;
     private final int limite;
 
@@ -45,7 +49,22 @@ public class RecomendacionServiceImpl implements RecomendacionService {
 
     @Override
     public void registrarItem(String tipo, Long itemId, String categoria) {
-        repository.registrarItem(tipo, itemId, categoria, Instant.now().toEpochMilli());
+        String cat = categoria == null || categoria.isBlank() ? CATEGORIA_POR_DEFECTO : categoria.trim();
+        repository.registrarItem(tipo, itemId, cat, Instant.now().toEpochMilli());
+    }
+
+    @Override
+    public void registrarAtractivo(Long atractivoId, String categoria, String estado) {
+        if (ESTADO_CERRADO.equals(estado)) {
+            repository.retirarItem(TIPO_ATRACTIVO, atractivoId);
+            return;
+        }
+        registrarItem(TIPO_ATRACTIVO, atractivoId, categoria);
+    }
+
+    @Override
+    public void retirarItem(String tipo, Long itemId) {
+        repository.retirarItem(tipo, itemId);
     }
 
     @Override

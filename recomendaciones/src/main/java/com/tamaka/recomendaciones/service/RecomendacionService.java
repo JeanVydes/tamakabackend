@@ -13,5 +13,11 @@ public interface RecomendacionService {
 
     void registrarItem(String tipo, Long itemId, String categoria);
 
+    /** Evento AtractivoActualizado: un atractivo CERRADO deja de recomendarse; en otro estado se (re)registra. */
+    void registrarAtractivo(Long atractivoId, String categoria, String estado);
+
+    /** Quita un item de las recomendaciones (p. ej., EventoDesactivado). */
+    void retirarItem(String tipo, Long itemId);
+
     void registrarPreferencias(Long turistaId, Collection<String> categorias);
 }

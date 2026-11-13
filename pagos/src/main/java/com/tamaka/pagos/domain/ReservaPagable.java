@@ -22,6 +22,9 @@ public class ReservaPagable {
     @Column(name = "turista_id", nullable = false)
     private Long turistaId;
 
+    @Column(name = "operador_id")
+    private Long operadorId;
+
     @Column(name = "valor_a_pagar", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorAPagar;
 
@@ -35,8 +38,13 @@ public class ReservaPagable {
     }
 
     public ReservaPagable(Long reservaId, Long turistaId, BigDecimal valorAPagar, Instant plazoPago) {
+        this(reservaId, turistaId, null, valorAPagar, plazoPago);
+    }
+
+    public ReservaPagable(Long reservaId, Long turistaId, Long operadorId, BigDecimal valorAPagar, Instant plazoPago) {
         this.reservaId = reservaId;
         this.turistaId = turistaId;
+        this.operadorId = operadorId;
         this.valorAPagar = valorAPagar;
         this.plazoPago = plazoPago;
         this.cancelada = false;
@@ -56,6 +64,14 @@ public class ReservaPagable {
 
     public Long getTuristaId() {
         return turistaId;
+    }
+
+    public Long getOperadorId() {
+        return operadorId;
+    }
+
+    public boolean isCancelada() {
+        return cancelada;
     }
 
     public BigDecimal getValorAPagar() {

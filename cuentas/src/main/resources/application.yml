@@ -26,3 +26,24 @@ tamaka:
       public-key: ${TAMAKA_JWT_PUBLIC_KEY:}
       private-key: ${TAMAKA_JWT_PRIVATE_KEY:}
       access-token-ttl: 15m
+  cuentas:
+    refresh-token-ttl: 7d   # refresh token opaco, rotado en cada uso
+  # Bus de eventos (tamaka-common). "http": POST a /internal/eventos de cada suscriptor;
+  # "log": solo registra. El secreto debe ser el mismo en todos los servicios (vacio = fail closed).
+  eventos:
+    transporte: ${TAMAKA_EVENTOS_TRANSPORTE:http}
+    secreto: ${TAMAKA_EVENTOS_SECRETO:}
+    timeout: 5s
+    reintentos: 3
+    suscriptores:
+      CuentaSuspendida: ${COMERCIOS_URL:http://localhost:8082}/internal/eventos
+    # Outbox transaccional: el evento se guarda con el cambio de estado y el relay lo entrega con reintentos.
+    outbox:
+      habilitado: ${TAMAKA_OUTBOX_HABILITADO:true}
+      almacen: jdbc
+      tabla: cuentas.outbox_evento
+      lote: 50
+      intervalo: PT2S
+      espera-base: PT2S
+      espera-maxima: PT10M
+      max-intentos: 10

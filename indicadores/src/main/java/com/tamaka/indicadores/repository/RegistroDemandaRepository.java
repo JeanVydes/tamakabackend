@@ -11,6 +11,8 @@ import com.tamaka.indicadores.domain.RegistroDemanda;
 
 public interface RegistroDemandaRepository extends JpaRepository<RegistroDemanda, Long> {
 
+    boolean existsByTipoAndReferenciaId(String tipo, Long referenciaId);
+
     /** Proyeccion: conteo por tipo en un rango de dias. */
     interface ConteoPorTipo {
         String getTipo();

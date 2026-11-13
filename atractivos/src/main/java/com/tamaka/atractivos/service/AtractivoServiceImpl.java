@@ -11,6 +11,7 @@ import com.tamaka.atractivos.domain.AlertaSeguridad;
 import com.tamaka.atractivos.dto.request.CambiarEstadoAtractivoRequest;
 import com.tamaka.atractivos.dto.request.CrearAtractivoRequest;
 import com.tamaka.atractivos.dto.request.EmitirAlertaRequest;
+import com.tamaka.atractivos.dto.response.AtractivoDetalleResponse;
 import com.tamaka.atractivos.dto.response.AtractivoResponse;
 import com.tamaka.atractivos.mapper.AtractivoMapper;
 import com.tamaka.atractivos.repository.AlertaSeguridadRepository;
@@ -44,8 +45,7 @@ public class AtractivoServiceImpl implements AtractivoService {
         Atractivo atractivo = Atractivo.crear(request.nombre().trim(), request.descripcion(),
                 request.categoria().trim(), gestorId);
         Atractivo guardado = atractivoRepository.save(atractivo);
-        eventPublisher.publicar(DomainEvent.de("AtractivoActualizado", guardado.getId(),
-                Map.of("estado", guardado.getEstado().name())));
+        publicarActualizado(guardado);
         return atractivoMapper.toResponse(guardado);
     }
 
@@ -58,25 +58,38 @@ public class AtractivoServiceImpl implements AtractivoService {
     }
 
     @Override
+    public AtractivoDetalleResponse obtener(Long atractivoId) {
+        Atractivo atractivo = obtenerEntidad(atractivoId);
+        return atractivoMapper.toDetalle(atractivo,
+                alertaRepository.findTop5ByAtractivoIdOrderByEmitidaEnDesc(atractivoId));
+    }
+
+    @Override
     @Transactional
     public AtractivoResponse cambiarEstado(Long atractivoId, CambiarEstadoAtractivoRequest request) {
-        Atractivo atractivo = obtener(atractivoId);
+        Atractivo atractivo = obtenerEntidad(atractivoId);
         atractivo.cambiarEstado(request.estado());
-        eventPublisher.publicar(DomainEvent.de("AtractivoActualizado", atractivoId,
-                Map.of("estado", request.estado().name())));
+        publicarActualizado(atractivo);
         return atractivoMapper.toResponse(atractivo);
     }
 
     @Override
     @Transactional
     public void emitirAlerta(Long gestorId, EmitirAlertaRequest request) {
-        Atractivo atractivo = obtener(request.atractivoId());
+        Atractivo atractivo = obtenerEntidad(request.atractivoId());
         alertaRepository.save(new AlertaSeguridad(atractivo.getId(), request.mensaje().trim(), gestorId));
         eventPublisher.publicar(DomainEvent.de("AlertaSeguridadEmitida", atractivo.getId(),
                 Map.of("atractivoId", atractivo.getId())));
     }
 
-    private Atractivo obtener(Long atractivoId) {
+    /** Recomendaciones necesita la categoria; Notificaciones avisa a quienes siguen el atractivo. */
+    private void publicarActualizado(Atractivo atractivo) {
+        eventPublisher.publicar(DomainEvent.de("AtractivoActualizado", atractivo.getId(), Map.of(
+                "estado", atractivo.getEstado().name(),
+                "categoria", atractivo.getCategoria())));
+    }
+
+    private Atractivo obtenerEntidad(Long atractivoId) {
         return atractivoRepository.findById(atractivoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Atractivo", atractivoId));
     }

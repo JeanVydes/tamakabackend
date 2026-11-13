@@ -31,3 +31,28 @@ tamaka:
     plazo-respuesta: 30m        # RF-RES-15
     plazo-pago: 60m             # RF-RES-14
     intervalo-timeouts: PT1M    # frecuencia del job de cancelacion
+    intervalo-finalizacion: PT1H  # CONFIRMADA -> FINALIZADA cuando la fecha ya paso
+    zona-horaria: America/Bogota
+  # Bus de eventos (tamaka-common). "http": POST a /internal/eventos de cada suscriptor;
+  # "log": solo registra. El secreto debe ser el mismo en todos los servicios (vacio = fail closed).
+  eventos:
+    transporte: ${TAMAKA_EVENTOS_TRANSPORTE:http}
+    secreto: ${TAMAKA_EVENTOS_SECRETO:}
+    timeout: 5s
+    reintentos: 3
+    suscriptores:
+      ReservaSolicitada: ${NOTIFICACIONES_URL:http://localhost:8089}/internal/eventos,${INDICADORES_URL:http://localhost:8090}/internal/eventos
+      ReservaAceptada: ${PAGOS_URL:http://localhost:8086}/internal/eventos,${NOTIFICACIONES_URL:http://localhost:8089}/internal/eventos
+      ReservaRechazada: ${NOTIFICACIONES_URL:http://localhost:8089}/internal/eventos
+      ReservaCancelada: ${PAGOS_URL:http://localhost:8086}/internal/eventos,${NOTIFICACIONES_URL:http://localhost:8089}/internal/eventos,${INDICADORES_URL:http://localhost:8090}/internal/eventos
+      PagoRequiereRevision: ${PAGOS_URL:http://localhost:8086}/internal/eventos
+    # Outbox transaccional: el evento se guarda con el cambio de estado y el relay lo entrega con reintentos.
+    outbox:
+      habilitado: ${TAMAKA_OUTBOX_HABILITADO:true}
+      almacen: jdbc
+      tabla: reservas.outbox_evento
+      lote: 50
+      intervalo: PT2S
+      espera-base: PT2S
+      espera-maxima: PT10M
+      max-intentos: 10

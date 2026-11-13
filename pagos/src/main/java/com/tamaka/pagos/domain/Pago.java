@@ -36,6 +36,9 @@ public class Pago {
     @Column(name = "turista_id", nullable = false)
     private Long turistaId;
 
+    @Column(name = "operador_id")
+    private Long operadorId;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal monto;
 
@@ -55,9 +58,11 @@ public class Pago {
     protected Pago() {
     }
 
-    private Pago(Long reservaId, Long turistaId, BigDecimal monto, String referenciaPasarela, Instant ahora) {
+    private Pago(Long reservaId, Long turistaId, Long operadorId, BigDecimal monto,
+                 String referenciaPasarela, Instant ahora) {
         this.reservaId = reservaId;
         this.turistaId = turistaId;
+        this.operadorId = operadorId;
         this.monto = monto;
         this.referenciaPasarela = referenciaPasarela;
         this.estado = EstadoPago.PENDIENTE;
@@ -66,7 +71,12 @@ public class Pago {
 
     public static Pago iniciar(Long reservaId, Long turistaId, BigDecimal monto,
                                String referenciaPasarela, Instant ahora) {
-        return new Pago(reservaId, turistaId, monto, referenciaPasarela, ahora);
+        return new Pago(reservaId, turistaId, null, monto, referenciaPasarela, ahora);
+    }
+
+    public static Pago iniciar(Long reservaId, Long turistaId, Long operadorId, BigDecimal monto,
+                               String referenciaPasarela, Instant ahora) {
+        return new Pago(reservaId, turistaId, operadorId, monto, referenciaPasarela, ahora);
     }
 
     /**
@@ -113,6 +123,10 @@ public class Pago {
 
     public Long getTuristaId() {
         return turistaId;
+    }
+
+    public Long getOperadorId() {
+        return operadorId;
     }
 
     public BigDecimal getMonto() {

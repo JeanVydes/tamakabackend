@@ -16,6 +16,7 @@ import com.tamaka.comercios.domain.Servicio;
 import com.tamaka.comercios.dto.request.ActualizarComercioRequest;
 import com.tamaka.comercios.dto.request.CrearComercioRequest;
 import com.tamaka.comercios.dto.request.CrearServicioRequest;
+import com.tamaka.comercios.dto.response.ComercioDetalleResponse;
 import com.tamaka.comercios.dto.response.ComercioResponse;
 import com.tamaka.comercios.dto.response.ServicioResponse;
 import com.tamaka.comercios.exception.RangoPersonasInvalidoException;
@@ -76,7 +77,9 @@ public class ComercioServiceImpl implements ComercioService {
         }
         Servicio servicio = Servicio.crear(comercio, request.nombre().trim(), request.precioBase(),
                 minimo, maximo, request.atributos());
-        return catalogoMapper.toResponse(servicioRepository.save(servicio));
+        Servicio guardado = servicioRepository.save(servicio);
+        eventPublisher.publicar(EventosCatalogo.servicio(EventosCatalogo.SERVICIO_CREADO, guardado));
+        return catalogoMapper.toResponse(guardado);
     }
 
     @Override
@@ -86,6 +89,29 @@ public class ComercioServiceImpl implements ComercioService {
         return comercioRepository.buscarActivos(cat, txt).stream()
                 .map(catalogoMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    public ComercioDetalleResponse obtener(Long comercioId) {
+        Comercio comercio = comercioRepository.findById(comercioId)
+                .filter(Comercio::isActivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Comercio", comercioId));
+        return catalogoMapper.toDetalle(comercio, servicioRepository.findActivosDeComercio(comercioId));
+    }
+
+    @Override
+    @Transactional
+    public int desactivarPorCuentaSuspendida(Long operadorId) {
+        comercioRepository.findByOperadorId(operadorId).forEach(Comercio::desactivar);
+        List<Servicio> activos = servicioRepository.findActivosDeOperador(operadorId);
+        for (Servicio servicio : activos) {
+            servicio.cambiarActivo(false);
+            eventPublisher.publicar(DomainEvent.de("ServicioDesactivado", servicio.getId(), Map.of(
+                    "comercioId", servicio.getComercio().getId(),
+                    "operadorId", operadorId,
+                    "motivo", "CUENTA_SUSPENDIDA")));
+        }
+        return activos.size();
     }
 
     /**

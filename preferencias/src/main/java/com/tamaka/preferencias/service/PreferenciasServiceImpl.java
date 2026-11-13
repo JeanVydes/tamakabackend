@@ -47,8 +47,9 @@ public class PreferenciasServiceImpl implements PreferenciasService {
                 .orElseGet(() -> new Preferencia(turistaId));
         preferencia.actualizar(request.categorias(), request.idioma());
         Preferencia guardada = preferenciaRepository.save(preferencia);
-        eventPublisher.publicar(DomainEvent.de("PreferenciasActualizadas", turistaId,
-                Map.of("categorias", guardada.getCategorias())));
+        eventPublisher.publicar(DomainEvent.de("PreferenciasActualizadas", turistaId, Map.of(
+                "categorias", guardada.getCategorias(),
+                "idioma", guardada.getIdioma())));
         return mapper.toResponse(guardada);
     }
 
@@ -66,6 +67,7 @@ public class PreferenciasServiceImpl implements PreferenciasService {
         }
         Favorito guardado = favoritoRepository.save(new Favorito(turistaId, request.tipo(), request.refId()));
         eventPublisher.publicar(DomainEvent.de("FavoritoGuardado", guardado.getId(), Map.of(
+                "turistaId", turistaId,
                 "tipo", guardado.getTipo(),
                 "refId", guardado.getRefId())));
         return mapper.toResponse(guardado);
@@ -86,5 +88,9 @@ public class PreferenciasServiceImpl implements PreferenciasService {
             throw new AccessDeniedException("El favorito no pertenece al turista autenticado");
         }
         favoritoRepository.delete(favorito);
+        eventPublisher.publicar(DomainEvent.de("FavoritoEliminado", favorito.getId(), Map.of(
+                "turistaId", turistaId,
+                "tipo", favorito.getTipo(),
+                "refId", favorito.getRefId())));
     }
 }

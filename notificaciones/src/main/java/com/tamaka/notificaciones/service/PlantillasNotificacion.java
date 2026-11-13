@@ -17,6 +17,12 @@ final class PlantillasNotificacion {
             "ReservaSolicitada", Map.of(
                     "es", new Texto("Nueva solicitud de reserva", "Tienes una nueva solicitud para revisar."),
                     "en", new Texto("New booking request", "You have a new booking request to review.")),
+            "ReservaSolicitadaTurista", Map.of(
+                    "es", new Texto("Solicitud enviada", "Tu solicitud de reserva fue enviada al operador."),
+                    "en", new Texto("Request sent", "Your booking request was sent to the operator.")),
+            "PagoAprobadoOperador", Map.of(
+                    "es", new Texto("Reserva pagada", "Una reserva de tu servicio fue pagada y quedo confirmada."),
+                    "en", new Texto("Booking paid", "A booking for your service was paid and is confirmed.")),
             "ReservaAceptada", Map.of(
                     "es", new Texto("Reserva aceptada", "Tu solicitud fue aceptada. Realiza el pago para confirmarla."),
                     "en", new Texto("Booking accepted", "Your request was accepted. Pay to confirm it.")),

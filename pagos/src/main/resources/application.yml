@@ -27,3 +27,23 @@ tamaka:
   pagos:
     # Secreto compartido con la pasarela para firmar los webhooks. Vacio = se rechazan todos (fail closed).
     webhook-secret: ${PAGOS_WEBHOOK_SECRET:}
+  # Bus de eventos (tamaka-common). "http": POST a /internal/eventos de cada suscriptor;
+  # "log": solo registra. El secreto debe ser el mismo en todos los servicios (vacio = fail closed).
+  eventos:
+    transporte: ${TAMAKA_EVENTOS_TRANSPORTE:http}
+    secreto: ${TAMAKA_EVENTOS_SECRETO:}
+    timeout: 5s
+    reintentos: 3
+    suscriptores:
+      PagoAprobado: ${RESERVAS_URL:http://localhost:8085}/internal/eventos,${NOTIFICACIONES_URL:http://localhost:8089}/internal/eventos,${INDICADORES_URL:http://localhost:8090}/internal/eventos
+      PagoRechazado: ${NOTIFICACIONES_URL:http://localhost:8089}/internal/eventos
+    # Outbox transaccional: el evento se guarda con el cambio de estado y el relay lo entrega con reintentos.
+    outbox:
+      habilitado: ${TAMAKA_OUTBOX_HABILITADO:true}
+      almacen: jdbc
+      tabla: pagos.outbox_evento
+      lote: 50
+      intervalo: PT2S
+      espera-base: PT2S
+      espera-maxima: PT10M
+      max-intentos: 10

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tamaka.reservas.dto.request.CancelarReservaRequest;
 import com.tamaka.reservas.dto.request.ResponderSolicitudRequest;
 import com.tamaka.reservas.dto.response.ReservaResponse;
 import com.tamaka.reservas.service.ReservaService;
@@ -34,10 +35,23 @@ public class OperadorReservaController {
         return ResponseEntity.ok(reservaService.reservasDelOperador(Long.valueOf(authentication.getName())));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ReservaResponse> detalle(Authentication authentication, @PathVariable Long id) {
+        return ResponseEntity.ok(reservaService.detalleComoOperador(Long.valueOf(authentication.getName()), id));
+    }
+
     @PatchMapping("/{id}/respuesta")
     public ResponseEntity<ReservaResponse> responder(Authentication authentication,
                                                      @PathVariable Long id,
                                                      @Valid @RequestBody ResponderSolicitudRequest request) {
         return ResponseEntity.ok(reservaService.responder(Long.valueOf(authentication.getName()), id, request));
+    }
+
+    /** Cuerpo opcional: {"motivo": "..."}. */
+    @PatchMapping("/{id}/cancelar")
+    public ResponseEntity<ReservaResponse> cancelar(Authentication authentication,
+                                                    @PathVariable Long id,
+                                                    @Valid @RequestBody(required = false) CancelarReservaRequest request) {
+        return ResponseEntity.ok(reservaService.cancelarComoOperador(Long.valueOf(authentication.getName()), id, request));
     }
 }

@@ -44,6 +44,12 @@ public class ReservaController {
         return ResponseEntity.ok(reservaService.misReservas(Long.valueOf(authentication.getName())));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('TURISTA')")
+    public ResponseEntity<ReservaResponse> detalle(Authentication authentication, @PathVariable Long id) {
+        return ResponseEntity.ok(reservaService.detalleComoTurista(Long.valueOf(authentication.getName()), id));
+    }
+
     @PatchMapping("/{id}/cancelar")
     @PreAuthorize("hasRole('TURISTA')")
     public ResponseEntity<ReservaResponse> cancelar(Authentication authentication, @PathVariable Long id) {

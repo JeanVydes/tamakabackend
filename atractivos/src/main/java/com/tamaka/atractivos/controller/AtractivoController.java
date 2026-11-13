@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tamaka.atractivos.dto.request.CambiarEstadoAtractivoRequest;
 import com.tamaka.atractivos.dto.request.CrearAtractivoRequest;
+import com.tamaka.atractivos.dto.response.AtractivoDetalleResponse;
 import com.tamaka.atractivos.dto.response.AtractivoResponse;
 import com.tamaka.atractivos.service.AtractivoService;
 
@@ -36,6 +37,11 @@ public class AtractivoController {
     public ResponseEntity<List<AtractivoResponse>> buscar(
             @RequestParam(name = "q", required = false) String q) {
         return ResponseEntity.ok(atractivoService.buscar(q));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<AtractivoDetalleResponse> obtener(@PathVariable Long id) {
+        return ResponseEntity.ok(atractivoService.obtener(id));
     }
 
     @PostMapping

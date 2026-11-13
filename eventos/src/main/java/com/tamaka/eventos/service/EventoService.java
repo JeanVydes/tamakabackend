@@ -17,5 +17,8 @@ public interface EventoService {
 
     EventoResponse desactivar(Long eventoId);
 
+    /** Detalle publico de un evento. */
+    EventoResponse obtener(Long eventoId);
+
     List<EventoResponse> listarActivos(LocalDate desde);
 }

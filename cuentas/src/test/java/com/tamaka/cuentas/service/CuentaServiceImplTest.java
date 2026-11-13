@@ -3,10 +3,14 @@ package com.tamaka.cuentas.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -19,10 +23,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.tamaka.common.event.EventPublisher;
 import com.tamaka.cuentas.domain.Cuenta;
+import com.tamaka.cuentas.dto.request.CambiarModoRequest;
 import com.tamaka.cuentas.dto.request.RegistrarCuentaRequest;
 import com.tamaka.cuentas.dto.request.SuspensionRequest;
+import com.tamaka.cuentas.dto.response.TokenResponse;
+import com.tamaka.cuentas.exception.CuentaSuspendidaException;
 import com.tamaka.cuentas.exception.CuentaYaSuspendidaException;
 import com.tamaka.cuentas.exception.EmailYaRegistradoException;
+import com.tamaka.cuentas.exception.ModoOperadorNoHabilitadoException;
 import com.tamaka.cuentas.mapper.CuentaMapper;
 import com.tamaka.cuentas.repository.CuentaRepository;
 
@@ -40,6 +48,9 @@ class CuentaServiceImplTest {
 
     @Mock
     private EventPublisher eventPublisher;
+
+    @Mock
+    private SesionService sesionService;
 
     @InjectMocks
     private CuentaServiceImpl cuentaService;
@@ -89,5 +100,55 @@ class CuentaServiceImplTest {
 
         assertThatThrownBy(() -> cuentaService.cambiarSuspension(1L, new SuspensionRequest(true, null)))
                 .isInstanceOf(CuentaYaSuspendidaException.class);
+    }
+
+    @Test
+    void activarModoOperadorEmiteTokenConRolOperadorYPublicaRolCambiado() {
+        Cuenta cuenta = Cuenta.registrar("ana@tamaka.co", "hash", "Ana");
+        when(cuentaRepository.findConRolesPorId(1L)).thenReturn(Optional.of(cuenta));
+        when(sesionService.abrirSesion(any(), any(), eq(true))).thenReturn(new TokenResponse("tkn", "Bearer", 900, "rt", 604800));
+
+        var sesion = cuentaService.activarModoOperador(1L);
+
+        assertThat(sesion.token().accessToken()).isEqualTo("tkn");
+        assertThat(sesion.cuenta().modoOperador()).isTrue();
+        verify(sesionService).abrirSesion(any(), argThat(roles -> roles.containsAll(List.of("TURISTA", "OPERADOR"))), eq(true));
+        verify(eventPublisher).publicar(any());
+    }
+
+    @Test
+    void volverAModoTuristaQuitaOperadorDelToken() {
+        Cuenta cuenta = Cuenta.registrar("ana@tamaka.co", "hash", "Ana");
+        cuenta.activarModoOperador();
+        when(cuentaRepository.findConRolesPorId(1L)).thenReturn(Optional.of(cuenta));
+        when(sesionService.abrirSesion(any(), any(), eq(true))).thenReturn(new TokenResponse("tkn", "Bearer", 900, "rt", 604800));
+
+        var sesion = cuentaService.cambiarModo(1L, new CambiarModoRequest("TURISTA"));
+
+        assertThat(sesion.cuenta().modoOperador()).isFalse();
+        assertThat(sesion.cuenta().roles()).contains("OPERADOR");
+        verify(sesionService).abrirSesion(any(), argThat(roles -> !roles.contains("OPERADOR") && roles.contains("TURISTA")), eq(true));
+        verify(eventPublisher, never()).publicar(any());
+    }
+
+    @Test
+    void noPasaAModoOperadorSinElRolHabilitado() {
+        Cuenta cuenta = Cuenta.registrar("ana@tamaka.co", "hash", "Ana");
+        when(cuentaRepository.findConRolesPorId(1L)).thenReturn(Optional.of(cuenta));
+
+        assertThatThrownBy(() -> cuentaService.cambiarModo(1L, new CambiarModoRequest("OPERADOR")))
+                .isInstanceOf(ModoOperadorNoHabilitadoException.class);
+        verify(sesionService, never()).abrirSesion(any(), any(), anyBoolean());
+    }
+
+    @Test
+    void cuentaSuspendidaNoRecibeTokenNuevo() {
+        Cuenta cuenta = Cuenta.registrar("ana@tamaka.co", "hash", "Ana");
+        cuenta.suspender();
+        when(cuentaRepository.findConRolesPorId(1L)).thenReturn(Optional.of(cuenta));
+
+        assertThatThrownBy(() -> cuentaService.activarModoOperador(1L))
+                .isInstanceOf(CuentaSuspendidaException.class);
+        verify(sesionService, never()).abrirSesion(any(), any(), anyBoolean());
     }
 }

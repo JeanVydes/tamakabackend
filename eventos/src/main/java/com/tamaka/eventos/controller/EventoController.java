@@ -40,6 +40,11 @@ public class EventoController {
         return ResponseEntity.ok(eventoService.listarActivos(desde));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<EventoResponse> obtener(@PathVariable Long id) {
+        return ResponseEntity.ok(eventoService.obtener(id));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<EventoResponse> publicar(Authentication authentication,
