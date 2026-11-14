@@ -419,11 +419,9 @@ la ofrece.
 
 ## Pendiente (no implementado)
 
-- Arranque real contra PostgreSQL/MongoDB/Redis y `docker compose ... up --build`: pendiente de revalidar tras el
-  rediseño de los Dockerfiles (jar ejecutable, usuario sin privilegios, capa de dependencias compartida). Los 10
-  Dockerfiles pasan `docker build --check` (lint de BuildKit) y los tres compose pasan `docker compose config`.
-  Las pruebas son unitarias y de controlador; el SQL de `JdbcOutboxStore` y las migraciones
-  no se han probado contra PostgreSQL (pendiente: Testcontainers).
+- Arranque real contra PostgreSQL/MongoDB/Redis y `docker compose ... up --build`: **verificado** (13/13 contenedores
+  healthy) y `infra/prueba-e2e.mjs` recorre el flujo completo con éxito. Las pruebas son unitarias y de controlador;
+  el SQL de `JdbcOutboxStore` y las migraciones no se han probado contra PostgreSQL (pendiente: Testcontainers).
 - Adaptador SNS y listener SQS (el bus HTTP cubre desarrollo y Render; el puerto ya permite el cambio).
 - Outbox en Preferencias (MongoDB sin transacciones): si el proceso cae entre guardar el documento y el evento, ese
   evento se pierde. Los mensajes `FALLIDO` no tienen todavía un endpoint de reenvío (revisión manual en la base).
