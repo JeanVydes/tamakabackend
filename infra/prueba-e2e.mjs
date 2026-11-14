@@ -1,4 +1,6 @@
-// Prueba de extremo a extremo contra el gateway de docker-compose.full.yml
+// Prueba de extremo a extremo contra el gateway del docker-compose.yml de la raiz del repositorio.
+//   docker compose up -d --build
+//   PAGOS_WEBHOOK_SECRET=$(grep '^PAGOS_WEBHOOK_SECRET=' .env | cut -d= -f2-) node infra/prueba-e2e.mjs
 import crypto from 'node:crypto';
 const BASE = process.env.BASE || 'http://localhost';
 const SECRETO_WEBHOOK = process.env.PAGOS_WEBHOOK_SECRET;

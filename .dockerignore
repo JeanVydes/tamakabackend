@@ -1,4 +1,31 @@
+# Contexto de construccion de las imagenes: solo lo necesario para compilar.
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Secretos y configuracion local (el .env nunca debe entrar en la imagen)
+.env
+*.pem
+*.key
+jwt-*.pem
+
+# Logs de la JVM y de ejecucion
+hs_err_pid*.log
+replay_pid*.log
+*.log
+
+# Git y documentacion: no hacen falta para compilar
+.git
+.gitignore
+README.md
+render.yaml
+docker-compose*.yml
+infra/
+
 **/target
 **/.idea
 **/*.iml
-infra/

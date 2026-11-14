@@ -52,4 +52,15 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <!-- Spring Boot 4 deja spring-boot-maven-plugin solo en pluginManagement: hay que
+                 activarlo aqui para que "mvn package" genere un jar ejecutable (java -jar).
+                 tamaka-common NO lo lleva: es una libreria, no una aplicacion. -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

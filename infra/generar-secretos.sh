@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Crea backend/infra/.env con un par de claves RSA para JWT (RS256) y secretos aleatorios.
+# Crea el .env de la raiz del repositorio con un par de claves RSA para JWT (RS256) y secretos aleatorios.
 # Requiere openssl (incluido en Git Bash, Linux y macOS). No sobrescribe un .env existente.
-# Uso: ./generar-secretos.sh            -> crea .env
-#      ./generar-secretos.sh --claves   -> solo imprime un par de claves nuevo (para pegarlo en otro sitio)
+# Uso: ./infra/generar-secretos.sh            -> crea .env en la raiz
+#      ./infra/generar-secretos.sh --claves   -> solo imprime un par de claves nuevo (para pegarlo en otro sitio)
 set -euo pipefail
 
-cd "$(dirname "$0")"
+raiz="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$raiz"
 command -v openssl >/dev/null || { echo "Falta openssl" >&2; exit 1; }
 
 temporal="$(mktemp -d)"
@@ -24,7 +25,7 @@ if [[ "${1:-}" == "--claves" ]]; then
 fi
 
 if [[ -f .env ]]; then
-  echo ".env ya existe: no se modifica. Para un par de claves nuevo: ./generar-secretos.sh --claves" >&2
+  echo ".env ya existe: no se modifica. Para un par de claves nuevo: ./infra/generar-secretos.sh --claves" >&2
   exit 1
 fi
 
@@ -40,4 +41,4 @@ sed \
   -e "s|^PAGOS_WEBHOOK_SECRET=.*|PAGOS_WEBHOOK_SECRET=$(aleatorio)|" \
   .env.example > .env
 
-echo ".env creado en $(pwd) (permisos 600). Guardelo fuera del repositorio."
+echo ".env creado en $raiz (permisos 600). Guardelo fuera del repositorio."

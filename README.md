@@ -46,7 +46,6 @@ No tiene lógica de dominio.
 ## Compilar y probar
 
 ```bash
-cd backend
 mvn -B test
 ```
 
@@ -59,18 +58,35 @@ Si la JVM se queda sin memoria, ejecute módulo a módulo: `mvn -B test -pl tama
 
 ## Infraestructura local
 
+Hay dos formas de levantar el backend en local:
+
+| Modo | Comando | Cuándo usarlo |
+|---|---|---|
+| Todo en contenedores | `docker compose up -d --build` (raíz del repositorio) | Prueba de extremo a extremo. Es el modo recomendado |
+| Solo los almacenes | `docker compose --env-file .env -f infra/docker-compose.yml up -d` | Los 10 servicios se ejecutan desde el IDE (`mvn spring-boot:run`) |
+
+El `docker-compose.yml` de la raíz levanta **todo**: PostgreSQL, MongoDB, Redis, los 10 microservicios y el gateway
+nginx. Solo el gateway publica un puerto (`TAMAKA_HTTP_PORT`, 80 por defecto); los almacenes y los servicios quedan en
+la red interna.
+
 ```bash
-cd backend/infra
-export POSTGRES_ADMIN_PASSWORD='...'   # elija una clave local
-export TAMAKA_DB_PASSWORD='...'        # clave de los usuarios tamaka_<servicio>
-docker compose up -d
+./infra/generar-secretos.sh    # crea el .env de la raíz: claves RSA de JWT y secretos aleatorios (no sobrescribe)
+docker compose up -d --build
+docker compose ps               # esperar a que los 13 contenedores estén healthy
+curl http://localhost/api/eventos
 ```
 
-El script `infra/postgres/01-esquemas.sh` crea un esquema y un usuario por servicio.
+Para publicar además los puertos de cada microservicio (depuración), añade el `ports` del servicio que
+necesites en el `docker-compose.yml` de la raíz, por ejemplo `cuentas: ports: ["8081:8081"]`.
+
+El script `infra/postgres/01-esquemas.sh` crea un esquema y un usuario por servicio (se ejecuta solo la primera vez,
+cuando se crea el volumen de PostgreSQL).
 
 ## Claves JWT (RS256)
 
 Cuentas firma con la clave privada; todos los servicios validan con la pública. Nunca se versionan.
+El flujo completo (quién emite, quién valida y cómo sabe cada servicio quién es el usuario) está en
+[Autenticación](#autenticación-cómo-validan-los-usuarios-los-demás-servicios).
 
 ```bash
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out jwt-private.pem
@@ -97,16 +113,118 @@ Variables de entorno:
 | `RESERVAS_URL`, `PAGOS_URL`, `RECOMENDACIONES_URL`, `NOTIFICACIONES_URL`, `INDICADORES_URL` | productores | Base de los consumidores (por defecto `http://localhost:<puerto>`) |
 | `TAMAKA_OUTBOX_HABILITADO` | productores | `true` por defecto: eventos por outbox transaccional; `false` vuelve a la entrega directa |
 
+## Autenticación: cómo validan los usuarios los demás servicios
+
+Cuentas es un servicio aparte, pero **ningún otro servicio lo consulta para saber quién es el usuario**. La
+identidad viaja en el propio token (JWT **RS256**), de forma que cada microservicio valida al usuario por su cuenta,
+sin llamadas de red al servicio de cuentas y sin compartir su base de datos.
+
+```
+                      ┌──────────────────────────────────────────────┐
+  Cliente ──login──▶ │ Cuentas (único emisor)                        │
+                      │  BCrypt + UserDetailsService → cuenta activa  │
+                      │  firma JWT RS256 con la CLAVE PRIVADA        │
+                      └───────────────┬──────────────────────────────┘
+                                      │  { accessToken (15 min), refreshToken (7 días) }
+                                      ▼
+  Cliente ── Authorization: Bearer <accessToken> ──▶ gateway nginx (solo enruta)
+                                      │
+        ┌─────────────┬───────────────┼───────────────┬─────────────┐
+        ▼             ▼               ▼               ▼             ▼
+    Reservas      Pagos        Preferencias     Recomendaciones   Indicadores
+        │             │               │               │             │
+        └─────────────┴───────────────┴───────────────┴─────────────┘
+                     cada uno: JwtAuthenticationFilter (tamaka-common)
+                     → verifica la firma con la CLAVE PÚBLICA
+                     → arma la identidad en el SecurityContext
+                     → @PreAuthorize / reglas de ruta
+```
+
+### Quién emite y quién valida
+
+| | Cuentas | Los otros 9 servicios |
+|---|---|---|
+| Clave que tiene | **privada** (PKCS#8) | solo la **pública** (X.509/SPKI) |
+| Qué hace | firma los access tokens | validan la firma y extraen los roles |
+| Base de datos | `cuentas` (el único con usuarios y contraseñas) | la suya, sin datos de usuarios |
+
+La clave pública no es un secreto: se reparte a los 10 servicios por variable de entorno (`TAMAKA_JWT_PUBLIC_KEY`)
+y se puede rotar sin tocar código. La privada solo la tiene Cuentas (`TAMAKA_JWT_PRIVATE_KEY`).
+
+### El flujo paso a paso
+
+1. **Login** — `POST /api/auth/login` (solo Cuentas). El `AuthenticationManager` compara el password con el hash
+   BCrypt (`CuentaUserDetailsService` + `DaoAuthenticationProvider`) y comprueba que la cuenta esté activa.
+2. **Emisión** — Cuentas firma un JWT RS256 de 15 minutos:
+   - `sub` = id de la cuenta (es lo que usa el resto de servicios: `Long.valueOf(authentication.getName())`),
+   - `iss` = `tamaka-cuentas` (obligatorio: un token de otro emisor se rechaza),
+   - `roles` = `["TURISTA", "OPERADOR", "GESTOR", "ADMIN"]` según el modo activo,
+   - `iat` / `exp`.
+   Además entrega un **refresh token opaco** (32 bytes aleatorios) del que solo se guarda el hash SHA-256; rota en
+   cada uso y, si se reutiliza uno ya rotado, se revocan todas las sesiones de la cuenta.
+3. **Petición** — el cliente manda `Authorization: Bearer <accessToken>`. El gateway nginx **no** valida nada: solo
+   enruta y bloquea `/internal/**`.
+4. **Validación local** — cada servicio tiene su propia `SecurityConfig` (STATELESS) con el
+   `JwtAuthenticationFilter` de `tamaka-common`: lee la cabecera, verifica la firma con la clave pública y el `iss`,
+   y si es válido deja la identidad en el `SecurityContextHolder` (`UsernamePasswordAuthenticationToken` con
+   `ROLE_<rol>` a partir del claim `roles`). Si el token falta o es inválido, la petición sigue **anónima** y la
+   regla de acceso la rechaza con 401 (`RestAuthenticationEntryPoint`); si es válida pero falta el rol, 403
+   (`RestAccessDeniedHandler`).
+5. **Autorización** — cada endpoint declara su rol: `@PreAuthorize("hasRole('TURISTA')")` o reglas de ruta en la
+   `SecurityConfig` (`/api/admin/**` → `hasRole("ADMIN")`).
+6. **Identidad** — los servicios toman el id del usuario del token, no de una consulta: `authentication.getName()`
+   devuelve el `sub`. Por eso ningún servicio necesita la base de datos de Cuentas ni su API.
+
+### Qué NO pasa por el bus de eventos
+
+`POST /internal/eventos` (bus de eventos) **no** usa JWT: se autentica con el secreto compartido
+`TAMAKA_EVENTOS_SECRETO` (cabecera `X-Tamaka-Eventos-Secreto`), cada `SecurityConfig` lo deja fuera del filtro JWT y
+el gateway bloquea `/internal/**`. Son dos mecanismos distintos y separados: JWT = identidad de usuario, secreto =
+comunicación servicio a servicio.
+
+### Límites del esquema actual (y qué haría falta si molestan)
+
+- **Revocación inmediata**: un access token ya emitido sigue siendo válido hasta que expira (15 min), aunque se
+  suspenda la cuenta o se cierre la sesión. Hoy se acepta ese desfase (el evento `CuentaSuspendida` desactiva los
+  comercios del operador y el refresh token deja de servir). Para revocación inmediata haría falta una lista negra
+  de tokens en Redis (o `jti` + versión de credencial) que el filtro consultara.
+- **Rotación de claves**: al cambiar el par RSA, los tokens firmados con la clave vieja dejan de validar; con 15 min
+  de vida el impacto es acotado, pero conviene acceptability de las dos claves durante el despliegue.
+- **Sin estado por servicio**: cada servicio es stateless y escalable por separado; a cambio, no puede saber si el
+  usuario fue borrado o suspendido sin llamar a Cuentas.
+- **Alternativas descartadas**: *introspection* (llamada a Cuentas en cada petición: acopla y ralentiza todo),
+  tokens opacos con sesión compartida (obliga a un almacén común y a que Cuentas esté disponible),
+  o validar el token solo en el gateway (convierte al gateway en un punto único de espera y de caída).
+  La firma asimétrica RS256 evita las tres: cada servicio valida localmente, en microsegundos, sin red.
+
+Ejemplo de uso completo:
+
+```bash
+# 1. Login (público)
+TOKEN=$(curl -s -X POST http://localhost/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"turista@ejemplo.com","password":"ClaveSegura123"}' | jq -r .accessToken)
+
+# 2. Cualquier servicio valida ese token por su cuenta
+curl -s http://localhost/api/reservas/mias -H "Authorization: Bearer $TOKEN"
+
+# 3. Con el token alterado, todos los servicios responden 401
+curl -s http://localhost/api/reservas/mias -H "Authorization: Bearer ${TOKEN}x"
+```
+
 Ejemplo para arrancar Cuentas:
 
 ```bash
-cd backend/cuentas
+cd cuentas
 mvn spring-boot:run
 ```
 
 ## Decisiones de implementación
 
 - **RS256** (ADR-4), no HS256 como en la guía de seguridad.
+- **Jar ejecutable**: en Spring Boot 4 el `spring-boot-starter-parent` declara `spring-boot-maven-plugin` **solo** en
+  `pluginManagement`, así que `mvn package` no reempaqueta nada por sí solo. Cada servicio lo activa en su `pom.xml`
+  para que la imagen pueda arrancar con `java -jar app.jar`. `tamaka-common` no lo lleva: es una librería, no una
+  aplicación (un jar "fat" no sirve como dependencia).
 - **Sin Lombok**: constructores explícitos, como exige la guía de servicios.
 - **Eventos**: los casos de uso publican a través de `EventPublisher`; en desarrollo viajan por HTTP interno
   (sección siguiente). El adaptador SNS/SQS está pendiente pero no requiere cambiar los servicios.
@@ -215,13 +333,26 @@ servicios PostgreSQL que publican (Flyway admite el hueco de versión en comerci
 
 ## Despliegue
 
-Todo el backend es portable: imágenes Docker por servicio (`<servicio>/Dockerfile`, contexto `backend/`) y
-configuración solo por variables de entorno. No depende de Render ni de ningún proveedor.
+Todo el backend es portable: imágenes Docker por servicio (`<servicio>/Dockerfile`, contexto en la raíz del
+repositorio) y configuración solo por variables de entorno. No depende de Render ni de ningún proveedor.
+
+### Imágenes Docker
+
+Cada `<servicio>/Dockerfile` tiene tres etapas:
+
+| Etapa | Qué hace |
+|---|---|
+| `deps` | Resuelve las dependencias Maven **solo con los `pom.xml`** (el código se copia después), así que un cambio en el código no vuelve a descargar nada. Las 10 imágenes comparten esta capa: las dependencias se bajan una sola vez para todo el stack. |
+| `build` | Compila el módulo y `tamaka-common` (`-am`) y genera el jar ejecutable de Spring Boot (`spring-boot-maven-plugin`, ver *Decisiones de implementación*). |
+| `run` | Imagen final: `eclipse-temurin:21-jre-jammy`, usuario **sin privilegios** (uid 1001), `JAVA_OPTS` con `-XX:+ExitOnOutOfMemoryError` (el contenedor muere y el orquestador lo reinicia) y `-XX:MaxRAMPercentage` para que el heap siga el límite de memoria del contenedor. Arranca con `java -jar app.jar`. |
+
+Los Dockerfiles se generan con `infra/generar-dockerfiles.sh` (plantilla común para los 10 servicios: si cambia el
+formato, se edita el script y se vuelve a ejecutar).
 
 ### Opción A — una VM con Docker Compose (recomendada para presupuesto bajo)
 
 Un solo servidor (AWS Lightsail/EC2, GCP, Azure, DigitalOcean, Hetzner...) con Docker y 4 GB de RAM o más
-(10 JVM de 384 MB + PostgreSQL + MongoDB + Redis). `infra/docker-compose.full.yml` levanta:
+(10 JVM de 384 MB + PostgreSQL + MongoDB + Redis). El `docker-compose.yml` de la raíz levanta:
 
 - **Almacenes**: PostgreSQL 18 (una base `tamaka`, un esquema y un usuario por servicio vía
   `infra/postgres/01-esquemas.sh`), MongoDB 8 (preferencias y notificaciones), Redis 7 (caché de recomendaciones,
@@ -233,10 +364,9 @@ Un solo servidor (AWS Lightsail/EC2, GCP, Azure, DigitalOcean, Hetzner...) con D
   del proveedor.
 
 ```bash
-cd backend/infra
-./generar-secretos.sh                      # crea .env: claves RSA de JWT y secretos aleatorios (no sobrescribe)
-docker compose -f docker-compose.full.yml up -d --build
-docker compose -f docker-compose.full.yml ps   # esperar a que todos estén healthy
+./infra/generar-secretos.sh                      # crea .env: claves RSA de JWT y secretos aleatorios (no sobrescribe)
+docker compose up -d --build
+docker compose ps   # esperar a que todos estén healthy
 curl http://localhost/api/eventos
 ```
 
@@ -246,8 +376,7 @@ comercio y servicio, reserva, aceptación, pago, webhook firmado, confirmación 
 recomendaciones, indicadores, 401/403 y bloqueo de `/internal`):
 
 ```bash
-cd backend/infra
-PAGOS_WEBHOOK_SECRET=$(grep '^PAGOS_WEBHOOK_SECRET=' .env | cut -d= -f2-) node prueba-e2e.mjs
+PAGOS_WEBHOOK_SECRET=$(grep '^PAGOS_WEBHOOK_SECRET=' .env | cut -d= -f2-) node infra/prueba-e2e.mjs
 ```
 
 Lecciones del arranque en máquinas pequeñas:
@@ -256,7 +385,7 @@ Lecciones del arranque en máquinas pequeñas:
 - **CPU**: arrancar las 10 JVM a la vez satura la CPU (Flyway e Hibernate tardan minutos y los healthchecks
   fallan). La JVM ya usa `-XX:TieredStopAtLevel=1` (sobrescribible con `TAMAKA_JAVA_OPTS`); aun así conviene
   arrancar por tandas:
-  `docker compose -f docker-compose.full.yml up -d postgres mongo redis`, luego
+  `docker compose up -d postgres mongo redis`, luego
   `... up -d cuentas comercios atractivos`, `... up -d eventos reservas pagos`,
   `... up -d indicadores preferencias notificaciones`, `... up -d recomendaciones gateway` (~100 s por tanda).
 - **Entrega de eventos**: es "al menos una vez". Si un consumidor tarda más que `tamaka.eventos.timeout` (5 s),
@@ -264,7 +393,7 @@ Lecciones del arranque en máquinas pequeñas:
   única (`DataIntegrityViolationException` / `DuplicateKeyException`) como evento ya aplicado, no como rechazo.
 - **MongoDB en Spring Boot 4**: la conexión se configura con `spring.mongodb.uri`; `spring.data.mongodb.uri` se ignora.
 
-Todas las variables están documentadas en `infra/.env.example`. Copias de seguridad: volúmenes `postgres-datos` y
+Todas las variables están documentadas en `.env.example` (raíz del repositorio). Copias de seguridad: volúmenes `postgres-datos` y
 `mongo-datos` (`pg_dump` / `mongodump`). Escalar después: mover PostgreSQL y MongoDB a servicios gestionados cambiando
 solo `DB_URL`/`MONGO_URI`.
 
@@ -275,22 +404,25 @@ cada servicio crea su esquema con Flyway), Redis/Key Value y **MongoDB externo**
 ofrece). `render.yaml` describe hoy los 8 servicios PostgreSQL/Redis; faltan Preferencias y Notificaciones (requieren
 `MONGO_URI`). Limitaciones: los planes gratuitos suspenden servicios inactivos (los eventos esperan en el outbox hasta
 que despiertan, pero la primera petición tarda) y limitan el número de servicios y bases; 10 servicios pagos suelen
-costar más que una VM. Configure en el PaaS las mismas variables de `infra/.env.example` y las URLs públicas o
+costar más que una VM. Configure en el PaaS las mismas variables de `.env.example` y las URLs públicas o
 privadas de los consumidores (`PAGOS_URL`, ...). No exponga `/internal/eventos` fuera de la red privada si el PaaS
 la ofrece.
 
 ### Desarrollo local
 
 - Todo en contenedores: igual que la opción A.
-- Servicios desde el IDE o `mvn spring-boot:run` con solo los almacenes en Docker: `infra/docker-compose.yml`
-  (sección *Infraestructura local*), y en cada terminal las variables `TAMAKA_JWT_PUBLIC_KEY`,
-  `TAMAKA_EVENTOS_SECRETO`, `DB_PASSWORD`, etc. (`./generar-secretos.sh --claves` imprime un par de claves). Las URLs
-  del bus apuntan por defecto a `http://localhost:<puerto>`.
+- Servicios desde el IDE o `mvn spring-boot:run` con solo los almacenes en Docker:
+  `docker compose --env-file .env -f infra/docker-compose.yml up -d` (sección *Infraestructura local*), y en cada
+  terminal las variables `TAMAKA_JWT_PUBLIC_KEY`, `TAMAKA_EVENTOS_SECRETO`, `DB_PASSWORD`, etc.
+  (`./infra/generar-secretos.sh --claves` imprime un par de claves).
+  Las URLs del bus apuntan por defecto a `http://localhost:<puerto>`.
 
 ## Pendiente (no implementado)
 
-- Arranque real contra PostgreSQL/MongoDB/Redis y `docker compose ... up --build`: no ejecutados (solo se validó
-  `docker compose config`). Las pruebas son unitarias y de controlador; el SQL de `JdbcOutboxStore` y las migraciones
+- Arranque real contra PostgreSQL/MongoDB/Redis y `docker compose ... up --build`: pendiente de revalidar tras el
+  rediseño de los Dockerfiles (jar ejecutable, usuario sin privilegios, capa de dependencias compartida). Los 10
+  Dockerfiles pasan `docker build --check` (lint de BuildKit) y los tres compose pasan `docker compose config`.
+  Las pruebas son unitarias y de controlador; el SQL de `JdbcOutboxStore` y las migraciones
   no se han probado contra PostgreSQL (pendiente: Testcontainers).
 - Adaptador SNS y listener SQS (el bus HTTP cubre desarrollo y Render; el puerto ya permite el cambio).
 - Outbox en Preferencias (MongoDB sin transacciones): si el proceso cae entre guardar el documento y el evento, ese
