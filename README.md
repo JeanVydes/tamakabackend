@@ -108,6 +108,7 @@ Variables de entorno:
 | `REDIS_HOST`, `REDIS_PORT` | recomendaciones | Conexión Redis |
 | `COMERCIOS_URL` | reservas | Consulta puntual de servicios |
 | `PAGOS_WEBHOOK_SECRET` | pagos | Secreto HMAC de la pasarela (vacío = webhooks rechazados) |
+| `TAMAKA_PAGOS_APROBACION_AUTOMATICA` | pagos | `true` (por defecto): el pago es un mock y se aprueba al instante; `false` para pasarela real por webhook |
 | `TAMAKA_EVENTOS_SECRETO` | todos | Secreto compartido del bus de eventos (vacío = no se aceptan eventos y solo se registran en el log) |
 | `TAMAKA_EVENTOS_TRANSPORTE` | todos | `http` (por defecto) o `log` |
 | `RESERVAS_URL`, `PAGOS_URL`, `RECOMENDACIONES_URL`, `NOTIFICACIONES_URL`, `INDICADORES_URL` | productores | Base de los consumidores (por defecto `http://localhost:<puerto>`) |
@@ -360,8 +361,9 @@ Un solo servidor (AWS Lightsail/EC2, GCP, Azure, DigitalOcean, Hetzner...) con D
 - **Los 10 microservicios**, con healthcheck, `depends_on` sobre su almacén y las URLs del bus con nombres de
   servicio Docker (`http://pagos:8086`, ...).
 - **Gateway nginx** (`infra/gateway/nginx.conf`): única entrada (`TAMAKA_HTTP_PORT`, 80 por defecto), enruta
-  `/api/**` a cada servicio y bloquea `/internal/**`. Para HTTPS ponga delante Caddy/Traefik o el balanceador
-  del proveedor.
+  `/api/**` a cada servicio, bloquea `/internal/**` y responde CORS (`Access-Control-Allow-Origin`) para el
+  frontend en producción (cualquier origen, `Access-Control-Allow-Origin: *`; las peticiones preflight `OPTIONS` se responden en el gateway,
+  los microservicios no las implementan). Para HTTPS ponga delante Caddy/Traefik o el balanceador del proveedor.
 
 ```bash
 ./infra/generar-secretos.sh                      # crea .env: claves RSA de JWT y secretos aleatorios (no sobrescribe)
@@ -432,7 +434,7 @@ la ofrece.
 - Si cambia la categoría de un comercio, sus servicios conservan la categoría anterior en Recomendaciones hasta la
   siguiente actualización de cada servicio.
 - API Gateway, Cloudflare, ALB y despliegue en AWS (infraestructura, no código de estos servicios).
-- Integración real con la pasarela (hoy `PasarelaPagosSandbox`) y canales de correo/push.
+- Integración real con la pasarela (hoy el pago es un mock con aprobación automática, `TAMAKA_PAGOS_APROBACION_AUTOMATICA`) y canales de correo/push.
 - Verificación de correo y RNT (Cuentas y Comercios). Un access token ya emitido sigue válido hasta expirar
   (15 min) aunque se cierre la sesión o se cambie de modo.
 - Paginación de listados, circuit breaker en la consulta HTTP entre servicios.

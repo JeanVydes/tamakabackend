@@ -53,7 +53,7 @@ class PagoServiceImplTest {
     private EventPublisher eventPublisher;
 
     @Spy
-    private PagosProperties properties = new PagosProperties(SECRETO);
+    private PagosProperties properties = new PagosProperties(SECRETO, true);
 
     @InjectMocks
     private PagoServiceImpl pagoService;
@@ -130,6 +130,62 @@ class PagoServiceImplTest {
         assertThat(evento.getValue().datoLongRequerido("operadorId")).isEqualTo(7L);
         assertThat(evento.getValue().datoLongRequerido("reservaId")).isEqualTo(5L);
         assertThat(evento.getValue().datos().get("monto")).isEqualTo("80000.00");
+    }
+
+    @Test
+    void iniciarConMockApruebaAlInstanteYPublicaPagoAprobado() {
+        Instant ahora = Instant.now();
+        var pagable = new ReservaPagable(5L, 1L, 7L, new BigDecimal("80000.00"), ahora.plusSeconds(3600));
+        when(reservaPagableRepository.findById(5L)).thenReturn(Optional.of(pagable));
+        when(pagoRepository.findFirstByReservaIdAndEstado(5L, EstadoPago.APROBADO)).thenReturn(Optional.empty());
+        when(pagoRepository.findFirstByReservaIdAndEstado(5L, EstadoPago.PENDIENTE)).thenReturn(Optional.empty());
+        when(pagoRepository.save(any(Pago.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(pagoRepository.saveAndFlush(any(Pago.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var response = pagoService.iniciar(1L, new com.tamaka.pagos.dto.request.IniciarPagoRequest(5L));
+
+        assertThat(response.estado()).isEqualTo("APROBADO");
+        assertThat(response.urlPago()).isNull();
+        verify(eventPublisher).publicar(any());
+    }
+
+    @Test
+    void iniciarReutilizaUnPendienteYLoApruebaAlInstante() {
+        Instant ahora = Instant.now();
+        var pagable = new ReservaPagable(5L, 1L, 7L, new BigDecimal("80000.00"), ahora.plusSeconds(3600));
+        Pago pendiente = Pago.iniciar(5L, 1L, 7L, new BigDecimal("80000.00"), "TMK-viejo", ahora);
+        when(reservaPagableRepository.findById(5L)).thenReturn(Optional.of(pagable));
+        when(pagoRepository.findFirstByReservaIdAndEstado(5L, EstadoPago.APROBADO)).thenReturn(Optional.empty());
+        when(pagoRepository.findFirstByReservaIdAndEstado(5L, EstadoPago.PENDIENTE)).thenReturn(Optional.of(pendiente));
+        when(pagoRepository.saveAndFlush(any(Pago.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var response = pagoService.iniciar(1L, new com.tamaka.pagos.dto.request.IniciarPagoRequest(5L));
+
+        assertThat(response.referenciaPasarela()).isEqualTo("TMK-viejo");
+        assertThat(response.estado()).isEqualTo("APROBADO");
+        assertThat(response.urlPago()).isNull();
+        verify(pagoRepository, never()).save(any(Pago.class));
+        verify(eventPublisher).publicar(any());
+    }
+
+    @Test
+    void iniciarSinMockDevuelveLaUrlDeLaPasarelaEnPendiente() {
+        Instant ahora = Instant.now();
+        var pagable = new ReservaPagable(5L, 1L, 7L, new BigDecimal("80000.00"), ahora.plusSeconds(3600));
+        when(reservaPagableRepository.findById(5L)).thenReturn(Optional.of(pagable));
+        when(pagoRepository.findFirstByReservaIdAndEstado(5L, EstadoPago.APROBADO)).thenReturn(Optional.empty());
+        when(pagoRepository.findFirstByReservaIdAndEstado(5L, EstadoPago.PENDIENTE)).thenReturn(Optional.empty());
+        when(pagoRepository.save(any(Pago.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(pasarela.crearCheckout(any(), any())).thenReturn("https://checkout.example/test");
+
+        PagoServiceImpl sinMock = new PagoServiceImpl(pagoRepository, reservaPagableRepository, pasarela,
+                new PagoMapper(), eventPublisher, new PagosProperties(SECRETO, false));
+
+        var response = sinMock.iniciar(1L, new com.tamaka.pagos.dto.request.IniciarPagoRequest(5L));
+
+        assertThat(response.estado()).isEqualTo("PENDIENTE");
+        assertThat(response.urlPago()).isEqualTo("https://checkout.example/test");
+        verify(eventPublisher, never()).publicar(any());
     }
 
     @Test

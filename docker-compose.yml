@@ -191,6 +191,8 @@ services:
       <<: [*entorno-comun, *entorno-postgres]
       DB_USER: tamaka_pagos
       PAGOS_WEBHOOK_SECRET: ${PAGOS_WEBHOOK_SECRET:-}
+      # Mock/sandbox: true = aprobacion instantanea al iniciar (por defecto true). false con pasarela real.
+      TAMAKA_PAGOS_APROBACION_AUTOMATICA: ${TAMAKA_PAGOS_APROBACION_AUTOMATICA:-true}
     depends_on: *depende-postgres
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8086' || exit 1"]
@@ -271,6 +273,7 @@ services:
       - "${TAMAKA_HTTP_PORT:-80}:80"
     volumes:
       - ./infra/gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./infra/gateway/cors-preflight.inc:/etc/nginx/snippets/cors-preflight.inc:ro
     depends_on:
       cuentas: {condition: service_healthy}
       comercios: {condition: service_healthy}

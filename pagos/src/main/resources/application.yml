@@ -27,6 +27,10 @@ tamaka:
   pagos:
     # Secreto compartido con la pasarela para firmar los webhooks. Vacio = se rechazan todos (fail closed).
     webhook-secret: ${PAGOS_WEBHOOK_SECRET:}
+    # Mock/sandbox: true = al iniciar el pago se aprueba al instante (sin urlPago ni webhook) y
+    # Reservas confirma por el evento PagoAprobado. Poner TAMAKA_PAGOS_APROBACION_AUTOMATICA=false
+    # al integrar una pasarela real.
+    aprobacion-automatica: ${TAMAKA_PAGOS_APROBACION_AUTOMATICA:true}
   # Bus de eventos (tamaka-common). "http": POST a /internal/eventos de cada suscriptor;
   # "log": solo registra. El secreto debe ser el mismo en todos los servicios (vacio = fail closed).
   eventos:

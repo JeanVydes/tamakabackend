@@ -74,18 +74,20 @@ public class PagoServiceImpl implements PagoService {
             throw new ReservaNoPagableException(reservaId);
         }
 
-        // Idempotente: si ya existe un intento pendiente, se devuelve el mismo.
+        // Idempotente: si ya existe un intento pendiente, se reutiliza (y se aprueba al instante si el mock esta activo).
         Optional<Pago> pendiente = pagoRepository.findFirstByReservaIdAndEstado(reservaId, EstadoPago.PENDIENTE);
-        if (pendiente.isPresent()) {
-            Pago existente = pendiente.get();
-            return pagoMapper.toResponse(existente,
-                    pasarela.crearCheckout(existente.getReferenciaPasarela(), existente.getMonto()));
+        Pago pago = pendiente.orElseGet(() -> pagoRepository.save(
+                Pago.iniciar(reservaId, turistaId, reserva.getOperadorId(),
+                        reserva.getValorAPagar(), "TMK-" + UUID.randomUUID(), ahora)));
+
+        if (Boolean.TRUE.equals(properties.aprobacionAutomatica())) {
+            // Mock de pasarela: la aprobacion es instantanea, no hay urlPago ni webhook.
+            // El evento PagoAprobado viaja por el bus y Reservas pasa la reserva a CONFIRMADA.
+            aprobarYPublicar(pago, ahora);
+            return pagoMapper.toResponse(pago, null);
         }
 
-        String referencia = "TMK-" + UUID.randomUUID();
-        Pago pago = pagoRepository.save(
-                Pago.iniciar(reservaId, turistaId, reserva.getOperadorId(), reserva.getValorAPagar(), referencia, ahora));
-        String urlPago = pasarela.crearCheckout(referencia, pago.getMonto());
+        String urlPago = pasarela.crearCheckout(pago.getReferenciaPasarela(), pago.getMonto());
         return pagoMapper.toResponse(pago, urlPago);
     }
 
@@ -123,11 +125,7 @@ public class PagoServiceImpl implements PagoService {
         }
 
         if (ESTADO_APROBADO.equals(request.estado())) {
-            // Idempotencia: un webhook repetido no vuelve a publicar el evento.
-            if (pago.aprobar(Instant.now())) {
-                pagoRepository.saveAndFlush(pago);
-                eventPublisher.publicar(DomainEvent.de("PagoAprobado", pago.getId(), datosDelPago(pago)));
-            }
+            aprobarYPublicar(pago, Instant.now());
         } else if (pago.getEstado() == EstadoPago.PENDIENTE) {
             pago.rechazar();
             pagoRepository.save(pago);
@@ -186,6 +184,17 @@ public class PagoServiceImpl implements PagoService {
     }
 
     /** Payload comun de los eventos de pago: ids y monto como texto (sin datos de tarjeta, PCI DSS). */
+    /**
+     * Pasa el pago a APROBADO (si no lo estaba) y publica PagoAprobado para que Reservas confirme la reserva.
+     * Idempotente: un webhook repetido o el mock repetido no vuelven a publicar el evento.
+     */
+    private void aprobarYPublicar(Pago pago, Instant ahora) {
+        if (pago.aprobar(ahora)) {
+            pagoRepository.saveAndFlush(pago);
+            eventPublisher.publicar(DomainEvent.de("PagoAprobado", pago.getId(), datosDelPago(pago)));
+        }
+    }
+
     private static Map<String, Object> datosDelPago(Pago pago) {
         Map<String, Object> datos = new HashMap<>();
         datos.put("reservaId", pago.getReservaId());
