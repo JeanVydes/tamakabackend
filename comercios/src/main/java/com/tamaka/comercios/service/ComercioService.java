@@ -2,6 +2,8 @@ package com.tamaka.comercios.service;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import com.tamaka.comercios.dto.request.ActualizarComercioRequest;
 import com.tamaka.comercios.dto.request.CrearComercioRequest;
 import com.tamaka.comercios.dto.request.CrearServicioRequest;
@@ -30,4 +32,10 @@ public interface ComercioService {
      * y publica ServicioDesactivado por cada servicio que estaba activo. Devuelve cuantos servicios desactivo.
      */
     int desactivarPorCuentaSuspendida(Long operadorId);
+
+    /** Sube una portada JPEG/PNG/WebP (max 5 MB) para el comercio. */
+    ComercioResponse subirImagen(Long operadorId, Long comercioId, MultipartFile archivo);
+
+    /** Elimina la portada (y su objeto en el bucket). */
+    ComercioResponse eliminarImagen(Long operadorId, Long comercioId);
 }

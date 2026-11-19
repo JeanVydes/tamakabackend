@@ -5,10 +5,12 @@ import java.util.Map;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.tamaka.common.error.ResourceNotFoundException;
 import com.tamaka.common.event.DomainEvent;
 import com.tamaka.common.event.EventPublisher;
+import com.tamaka.common.storage.ImageStorage;
 import com.tamaka.comercios.domain.Servicio;
 import com.tamaka.comercios.dto.request.ActualizarServicioRequest;
 import com.tamaka.comercios.dto.request.CambiarActivoRequest;
@@ -24,13 +26,16 @@ public class ServicioServiceImpl implements ServicioService {
     private final ServicioRepository servicioRepository;
     private final CatalogoMapper catalogoMapper;
     private final EventPublisher eventPublisher;
+    private final ImageStorage imageStorage;
 
     public ServicioServiceImpl(ServicioRepository servicioRepository,
                                CatalogoMapper catalogoMapper,
-                               EventPublisher eventPublisher) {
+                               EventPublisher eventPublisher,
+                               ImageStorage imageStorage) {
         this.servicioRepository = servicioRepository;
         this.catalogoMapper = catalogoMapper;
         this.eventPublisher = eventPublisher;
+        this.imageStorage = imageStorage;
     }
 
     @Override
@@ -72,6 +77,30 @@ public class ServicioServiceImpl implements ServicioService {
         if (servicio.isActivo()) {
             eventPublisher.publicar(EventosCatalogo.servicio(EventosCatalogo.SERVICIO_ACTUALIZADO, servicio));
         }
+        return catalogoMapper.toResponse(servicio);
+    }
+
+    @Override
+    @Transactional
+    public ServicioResponse subirImagen(Long operadorId, Long servicioId, MultipartFile archivo) {
+        Servicio servicio = cargarPropio(operadorId, servicioId);
+        // subir valida tipo/firma/5MB y devuelve la clave del objeto ya guardado en R2
+        String claveNueva = imageStorage.subir("servicios", String.valueOf(servicio.getId()), archivo);
+        String vieja = servicio.getImagenKey();
+        servicio.cambiarImagen(claveNueva);
+        servicioRepository.save(servicio);
+        imageStorage.borrar(vieja);
+        return catalogoMapper.toResponse(servicio);
+    }
+
+    @Override
+    @Transactional
+    public ServicioResponse eliminarImagen(Long operadorId, Long servicioId) {
+        Servicio servicio = cargarPropio(operadorId, servicioId);
+        String vieja = servicio.getImagenKey();
+        servicio.cambiarImagen(null);
+        servicioRepository.save(servicio);
+        imageStorage.borrar(vieja);
         return catalogoMapper.toResponse(servicio);
     }
 

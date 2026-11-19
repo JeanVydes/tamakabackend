@@ -24,6 +24,7 @@ import com.tamaka.atractivos.repository.AlertaSeguridadRepository;
 import com.tamaka.atractivos.repository.AtractivoRepository;
 import com.tamaka.common.error.ResourceNotFoundException;
 import com.tamaka.common.event.EventPublisher;
+import com.tamaka.common.storage.ImageStorage;
 
 @ExtendWith(MockitoExtension.class)
 class AtractivoServiceImplTest {
@@ -39,6 +40,9 @@ class AtractivoServiceImplTest {
 
     @Mock
     private EventPublisher eventPublisher;
+
+    @Mock
+    private ImageStorage imageStorage;
 
     @InjectMocks
     private AtractivoServiceImpl atractivoService;

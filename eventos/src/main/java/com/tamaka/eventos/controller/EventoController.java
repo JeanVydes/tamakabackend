@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tamaka.eventos.dto.request.PublicarEventoRequest;
 import com.tamaka.eventos.dto.response.EventoResponse;
 import com.tamaka.eventos.service.EventoService;
+
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 
@@ -64,5 +67,18 @@ public class EventoController {
     @PreAuthorize("hasRole('GESTOR')")
     public ResponseEntity<EventoResponse> desactivar(@PathVariable Long id) {
         return ResponseEntity.ok(eventoService.desactivar(id));
+    }
+
+    @PostMapping("/{id}/imagen")
+    @PreAuthorize("hasRole('GESTOR')")
+    public ResponseEntity<EventoResponse> subirImagen(@PathVariable Long id,
+                                                      @RequestParam("archivo") MultipartFile archivo) {
+        return ResponseEntity.ok(eventoService.subirImagen(id, archivo));
+    }
+
+    @DeleteMapping("/{id}/imagen")
+    @PreAuthorize("hasRole('GESTOR')")
+    public ResponseEntity<EventoResponse> eliminarImagen(@PathVariable Long id) {
+        return ResponseEntity.ok(eventoService.eliminarImagen(id));
     }
 }

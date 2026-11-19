@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+
+import com.tamaka.common.storage.ImagenInvalidaException;
+import com.tamaka.common.storage.StorageNotAvailableException;
 
 /**
  * Manejo centralizado de errores (guia de controladores §13). No contiene logica de dominio.
@@ -24,6 +28,22 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> uploadLimit(MaxUploadSizeExceededException ex) {
+        Map<String, String> details = Map.of("imagen", "La imagen supera el maximo de 5 MB");
+        return build(HttpStatus.BAD_REQUEST, "La solicitud no es valida", details);
+    }
+
+    @ExceptionHandler(ImagenInvalidaException.class)
+    public ResponseEntity<ErrorResponse> imagenInvalida(ImagenInvalidaException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), ex.getDetalles());
+    }
+
+    @ExceptionHandler(StorageNotAvailableException.class)
+    public ResponseEntity<ErrorResponse> storageNoDisponible(StorageNotAvailableException ex) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), Map.of());
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> notFound(ResourceNotFoundException ex) {

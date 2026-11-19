@@ -10,6 +10,8 @@ public record EventoResponse(
         String categoria,
         LocalDate fechaInicio,
         LocalDate fechaFin,
-        boolean activo
+        boolean activo,
+        /** URL publica de la portada (R2); null si no tiene. */
+        String imagen
 ) {
 }

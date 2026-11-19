@@ -15,6 +15,8 @@ public record ServicioResponse(
         int minPersonas,
         int maxPersonas,
         boolean activo,
-        Map<String, Object> atributos
+        Map<String, Object> atributos,
+        /** URL publica de la portada (R2); null si no tiene. */
+        String imagen
 ) {
 }

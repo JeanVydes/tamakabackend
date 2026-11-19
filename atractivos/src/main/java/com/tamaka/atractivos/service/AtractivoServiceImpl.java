@@ -3,6 +3,7 @@ package com.tamaka.atractivos.service;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import com.tamaka.atractivos.repository.AtractivoRepository;
 import com.tamaka.common.error.ResourceNotFoundException;
 import com.tamaka.common.event.DomainEvent;
 import com.tamaka.common.event.EventPublisher;
+import com.tamaka.common.storage.ImageStorage;
 
 @Service
 @Transactional(readOnly = true)
@@ -28,15 +30,18 @@ public class AtractivoServiceImpl implements AtractivoService {
     private final AlertaSeguridadRepository alertaRepository;
     private final AtractivoMapper atractivoMapper;
     private final EventPublisher eventPublisher;
+    private final ImageStorage imageStorage;
 
     public AtractivoServiceImpl(AtractivoRepository atractivoRepository,
                                 AlertaSeguridadRepository alertaRepository,
                                 AtractivoMapper atractivoMapper,
-                                EventPublisher eventPublisher) {
+                                EventPublisher eventPublisher,
+                                ImageStorage imageStorage) {
         this.atractivoRepository = atractivoRepository;
         this.alertaRepository = alertaRepository;
         this.atractivoMapper = atractivoMapper;
         this.eventPublisher = eventPublisher;
+        this.imageStorage = imageStorage;
     }
 
     @Override
@@ -70,6 +75,30 @@ public class AtractivoServiceImpl implements AtractivoService {
         Atractivo atractivo = obtenerEntidad(atractivoId);
         atractivo.cambiarEstado(request.estado());
         publicarActualizado(atractivo);
+        return atractivoMapper.toResponse(atractivo);
+    }
+
+    @Override
+    @Transactional
+    public AtractivoResponse subirImagen(Long atractivoId, MultipartFile archivo) {
+        Atractivo atractivo = obtenerEntidad(atractivoId);
+        // subir valida tipo/firma/5MB y devuelve la clave del objeto ya guardado en R2
+        String claveNueva = imageStorage.subir("atractivos", String.valueOf(atractivo.getId()), archivo);
+        String vieja = atractivo.getImagenKey();
+        atractivo.cambiarImagen(claveNueva);
+        atractivoRepository.save(atractivo);
+        imageStorage.borrar(vieja);
+        return atractivoMapper.toResponse(atractivo);
+    }
+
+    @Override
+    @Transactional
+    public AtractivoResponse eliminarImagen(Long atractivoId) {
+        Atractivo atractivo = obtenerEntidad(atractivoId);
+        String vieja = atractivo.getImagenKey();
+        atractivo.cambiarImagen(null);
+        atractivoRepository.save(atractivo);
+        imageStorage.borrar(vieja);
         return atractivoMapper.toResponse(atractivo);
     }
 

@@ -39,6 +39,10 @@ public class Atractivo {
     @Column(name = "gestor_id", nullable = false)
     private Long gestorId;
 
+    /** Clave del objeto en R2; null si el atractivo no tiene imagen de portada. */
+    @Column(name = "imagen_key", length = 512)
+    private String imagenKey;
+
     @Column(name = "creado_en", nullable = false)
     private Instant creadoEn;
 
@@ -60,6 +64,15 @@ public class Atractivo {
 
     public void cambiarEstado(EstadoAtractivo nuevo) {
         this.estado = nuevo;
+    }
+
+    /** Guarda la clave de la nueva portada (o null al eliminarla). */
+    public void cambiarImagen(String nuevaClave) {
+        this.imagenKey = nuevaClave;
+    }
+
+    public String getImagenKey() {
+        return imagenKey;
     }
 
     public Long getId() {

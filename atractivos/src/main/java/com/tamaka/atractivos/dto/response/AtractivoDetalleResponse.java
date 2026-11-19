@@ -11,6 +11,8 @@ public record AtractivoDetalleResponse(
         String descripcion,
         String categoria,
         String estado,
+        /** URL publica de la portada (R2); null si no tiene. */
+        String imagen,
         List<AlertaResponse> alertasRecientes
 ) {
 }

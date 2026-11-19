@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.tamaka.common.error.ResourceNotFoundException;
 import com.tamaka.common.event.DomainEvent;
@@ -22,6 +23,7 @@ import com.tamaka.cuentas.exception.CuentaSuspendidaException;
 import com.tamaka.cuentas.exception.EmailYaRegistradoException;
 import com.tamaka.cuentas.mapper.CuentaMapper;
 import com.tamaka.cuentas.repository.CuentaRepository;
+import com.tamaka.common.storage.ImageStorage;
 
 @Service
 @Transactional(readOnly = true)
@@ -34,17 +36,20 @@ public class CuentaServiceImpl implements CuentaService {
     private final PasswordEncoder passwordEncoder;
     private final EventPublisher eventPublisher;
     private final SesionService sesionService;
+    private final ImageStorage imageStorage;
 
     public CuentaServiceImpl(CuentaRepository cuentaRepository,
                              CuentaMapper cuentaMapper,
                              PasswordEncoder passwordEncoder,
                              EventPublisher eventPublisher,
-                             SesionService sesionService) {
+                             SesionService sesionService,
+                             ImageStorage imageStorage) {
         this.cuentaRepository = cuentaRepository;
         this.cuentaMapper = cuentaMapper;
         this.passwordEncoder = passwordEncoder;
         this.eventPublisher = eventPublisher;
         this.sesionService = sesionService;
+        this.imageStorage = imageStorage;
     }
 
     @Override
@@ -61,6 +66,30 @@ public class CuentaServiceImpl implements CuentaService {
     @Override
     public CuentaResponse buscarPorId(Long cuentaId) {
         return cuentaMapper.toResponse(obtener(cuentaId));
+    }
+
+    @Override
+    @Transactional
+    public CuentaResponse subirFoto(Long cuentaId, MultipartFile archivo) {
+        Cuenta cuenta = obtener(cuentaId);
+        // subir valida tipo/firma/5MB y devuelve la clave del objeto ya guardado en R2
+        String claveNueva = imageStorage.subir("usuarios", String.valueOf(cuenta.getId()), archivo);
+        String vieja = cuenta.getImagenKey();
+        cuenta.cambiarImagen(claveNueva);
+        cuentaRepository.save(cuenta);
+        imageStorage.borrar(vieja);
+        return cuentaMapper.toResponse(cuenta);
+    }
+
+    @Override
+    @Transactional
+    public CuentaResponse eliminarFoto(Long cuentaId) {
+        Cuenta cuenta = obtener(cuentaId);
+        String vieja = cuenta.getImagenKey();
+        cuenta.cambiarImagen(null);
+        cuentaRepository.save(cuenta);
+        imageStorage.borrar(vieja);
+        return cuentaMapper.toResponse(cuenta);
     }
 
     @Override

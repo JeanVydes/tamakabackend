@@ -9,6 +9,11 @@ spring:
     url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tamaka}}
     username: ${DB_USER:tamaka_eventos}
     password: ${DB_PASSWORD:}
+  servlet:
+    multipart:
+      # Subida de portadas: 5 MB como maximo y 5 MB por peticion (valida tambien el servicio)
+      max-file-size: 5MB
+      max-request-size: 5MB
   jpa:
     open-in-view: false
     hibernate:
@@ -24,6 +29,13 @@ tamaka:
     jwt:
       issuer: tamaka-cuentas
       public-key: ${TAMAKA_JWT_PUBLIC_KEY:}
+  storage:
+    # Bucket publico de imagenes (Cloudflare R2, compatible con S3). Vacio = subida deshabilitada (503).
+    endpoint: ${TAMAKA_STORAGE_ENDPOINT:}
+    bucket: ${TAMAKA_STORAGE_BUCKET:}
+    public-base-url: ${TAMAKA_STORAGE_PUBLIC_BASE_URL:}
+    access-key-id: ${TAMAKA_STORAGE_ACCESS_KEY_ID:}
+    secret-access-key: ${TAMAKA_STORAGE_SECRET_ACCESS_KEY:}
   # Bus de eventos (tamaka-common). "http": POST a /internal/eventos de cada suscriptor;
   # "log": solo registra. El secreto debe ser el mismo en todos los servicios (vacio = fail closed).
   eventos:

@@ -13,6 +13,8 @@ public record ComercioDetalleResponse(
         String categoria,
         String descripcion,
         boolean activo,
-        List<ServicioResponse> servicios
+        List<ServicioResponse> servicios,
+        /** URL publica de la portada (R2); null si no tiene. */
+        String imagen
 ) {
 }

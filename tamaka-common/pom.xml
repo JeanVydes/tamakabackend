@@ -31,6 +31,12 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
         </dependency>
+        <!-- Cliente S3 para el bucket publico de imagenes (Cloudflare R2 es compatible con S3). -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.59.4</version>
+        </dependency>
         <!-- Adaptadores del outbox: cada servicio aporta la que usa (JDBC o MongoDB); aqui son opcionales. -->
         <dependency>
             <groupId>org.springframework</groupId>

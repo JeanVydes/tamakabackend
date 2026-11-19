@@ -2,6 +2,8 @@ package com.tamaka.cuentas.service;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import com.tamaka.cuentas.dto.request.CambiarModoRequest;
 import com.tamaka.cuentas.dto.request.RegistrarCuentaRequest;
 import com.tamaka.cuentas.dto.request.SuspensionRequest;
@@ -29,4 +31,10 @@ public interface CuentaService {
     CuentaResponse cambiarSuspension(Long cuentaId, SuspensionRequest request);
 
     CuentaResponse asignarRolGestor(Long cuentaId);
+
+    /** Sube la foto de perfil (JPEG/PNG/WebP, max 5 MB); el avatar la sustituye inmediatamente. */
+    CuentaResponse subirFoto(Long cuentaId, MultipartFile archivo);
+
+    /** Elimina la foto de perfil (y su objeto en el bucket). */
+    CuentaResponse eliminarFoto(Long cuentaId);
 }

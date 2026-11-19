@@ -57,7 +57,7 @@ class CuentaControllerTest {
     @WithMockUser(username = "1", roles = "TURISTA")
     void cambiarModoDevuelveCuentaYTokenNuevo() throws Exception {
         CuentaResponse cuenta = new CuentaResponse(1L, "ana@tamaka.co", "Ana", true, true,
-                Set.of("TURISTA", "OPERADOR"), Instant.parse("2026-11-09T10:00:00Z"));
+                Set.of("TURISTA", "OPERADOR"), Instant.parse("2026-11-09T10:00:00Z"), null);
         when(cuentaService.cambiarModo(eq(1L), any(CambiarModoRequest.class)))
                 .thenReturn(new SesionResponse(cuenta, new TokenResponse("nuevo-token", "Bearer", 900, "nuevo-refresh", 604800)));
 

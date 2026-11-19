@@ -2,6 +2,8 @@ package com.tamaka.atractivos.service;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import com.tamaka.atractivos.dto.request.CambiarEstadoAtractivoRequest;
 import com.tamaka.atractivos.dto.request.CrearAtractivoRequest;
 import com.tamaka.atractivos.dto.request.EmitirAlertaRequest;
@@ -23,4 +25,10 @@ public interface AtractivoService {
     AtractivoResponse cambiarEstado(Long atractivoId, CambiarEstadoAtractivoRequest request);
 
     void emitirAlerta(Long gestorId, EmitirAlertaRequest request);
+
+    /** Sube una portada JPEG/PNG/WebP (max 5 MB) para el atractivo. */
+    AtractivoResponse subirImagen(Long atractivoId, MultipartFile archivo);
+
+    /** Elimina la portada (y su objeto en el bucket). */
+    AtractivoResponse eliminarImagen(Long atractivoId);
 }

@@ -5,6 +5,8 @@ public record AtractivoResponse(
         String nombre,
         String descripcion,
         String categoria,
-        String estado
+        String estado,
+        /** URL publica de la portada (R2); null si no tiene. */
+        String imagen
 ) {
 }

@@ -6,10 +6,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.tamaka.cuentas.dto.request.CambiarModoRequest;
 import com.tamaka.cuentas.dto.request.RegistrarCuentaRequest;
@@ -51,5 +54,17 @@ public class CuentaController {
     public ResponseEntity<SesionResponse> cambiarModo(Authentication authentication,
                                                       @Valid @RequestBody CambiarModoRequest request) {
         return ResponseEntity.ok(cuentaService.cambiarModo(Long.valueOf(authentication.getName()), request));
+    }
+
+    /** Foto de perfil: sustituye al avatar en toda la cuenta de forma inmediata. */
+    @PostMapping("/me/foto")
+    public ResponseEntity<CuentaResponse> subirFoto(Authentication authentication,
+                                                    @RequestParam("archivo") MultipartFile archivo) {
+        return ResponseEntity.ok(cuentaService.subirFoto(Long.valueOf(authentication.getName()), archivo));
+    }
+
+    @DeleteMapping("/me/foto")
+    public ResponseEntity<CuentaResponse> eliminarFoto(Authentication authentication) {
+        return ResponseEntity.ok(cuentaService.eliminarFoto(Long.valueOf(authentication.getName())));
     }
 }

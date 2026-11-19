@@ -2,12 +2,16 @@ package com.tamaka.comercios.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tamaka.comercios.dto.request.ActualizarServicioRequest;
@@ -38,6 +42,23 @@ public class ServicioController {
                                                        @PathVariable Long id,
                                                        @Valid @RequestBody ActualizarServicioRequest request) {
         return ResponseEntity.ok(servicioService.actualizar(Long.valueOf(authentication.getName()), id, request));
+    }
+
+    @PostMapping("/{id}/imagen")
+    @PreAuthorize("hasRole('OPERADOR')")
+    public ResponseEntity<ServicioResponse> subirImagen(Authentication authentication,
+                                                        @PathVariable Long id,
+                                                        @RequestParam("archivo") MultipartFile archivo) {
+        return ResponseEntity.ok(servicioService.subirImagen(
+                Long.valueOf(authentication.getName()), id, archivo));
+    }
+
+    @DeleteMapping("/{id}/imagen")
+    @PreAuthorize("hasRole('OPERADOR')")
+    public ResponseEntity<ServicioResponse> eliminarImagen(Authentication authentication,
+                                                           @PathVariable Long id) {
+        return ResponseEntity.ok(servicioService.eliminarImagen(
+                Long.valueOf(authentication.getName()), id));
     }
 
     @PatchMapping("/{id}/activo")

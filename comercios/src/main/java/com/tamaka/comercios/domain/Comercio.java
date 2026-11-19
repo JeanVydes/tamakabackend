@@ -42,6 +42,10 @@ public class Comercio {
     @Column(name = "creado_en", nullable = false)
     private Instant creadoEn;
 
+    /** Clave del objeto en R2; null si no tiene portada. */
+    @Column(name = "imagen_key", length = 512)
+    private String imagenKey;
+
     protected Comercio() {
     }
 
@@ -63,6 +67,14 @@ public class Comercio {
         this.nombre = nombre;
         this.categoria = categoria;
         this.descripcion = descripcion;
+    }
+
+    public void cambiarImagen(String clave) {
+        this.imagenKey = clave;
+    }
+
+    public String getImagenKey() {
+        return imagenKey;
     }
 
     /** Retira el comercio del catalogo publico (p. ej., cuenta del operador suspendida). */

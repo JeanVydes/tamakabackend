@@ -51,6 +51,10 @@ public class Cuenta {
     @Column(name = "creada_en", nullable = false)
     private Instant creadaEn;
 
+    /** Clave del objeto en R2; null si usa el avatar por defecto. */
+    @Column(name = "imagen_key", length = 512)
+    private String imagenKey;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "cuenta_rol", joinColumns = @JoinColumn(name = "cuenta_id"))
     @Enumerated(EnumType.STRING)
@@ -72,6 +76,14 @@ public class Cuenta {
 
     public static Cuenta registrar(String email, String passwordHash, String nombre) {
         return new Cuenta(email, passwordHash, nombre);
+    }
+
+    public void cambiarImagen(String clave) {
+        this.imagenKey = clave;
+    }
+
+    public String getImagenKey() {
+        return imagenKey;
     }
 
     public void suspender() {

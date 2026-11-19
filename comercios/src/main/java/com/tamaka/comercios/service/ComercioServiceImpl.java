@@ -7,10 +7,12 @@ import java.util.Map;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.tamaka.common.error.ResourceNotFoundException;
 import com.tamaka.common.event.DomainEvent;
 import com.tamaka.common.event.EventPublisher;
+import com.tamaka.common.storage.ImageStorage;
 import com.tamaka.comercios.domain.Comercio;
 import com.tamaka.comercios.domain.Servicio;
 import com.tamaka.comercios.dto.request.ActualizarComercioRequest;
@@ -33,15 +35,18 @@ public class ComercioServiceImpl implements ComercioService {
     private final ServicioRepository servicioRepository;
     private final CatalogoMapper catalogoMapper;
     private final EventPublisher eventPublisher;
+    private final ImageStorage imageStorage;
 
     public ComercioServiceImpl(ComercioRepository comercioRepository,
                                ServicioRepository servicioRepository,
                                CatalogoMapper catalogoMapper,
-                               EventPublisher eventPublisher) {
+                               EventPublisher eventPublisher,
+                               ImageStorage imageStorage) {
         this.comercioRepository = comercioRepository;
         this.servicioRepository = servicioRepository;
         this.catalogoMapper = catalogoMapper;
         this.eventPublisher = eventPublisher;
+        this.imageStorage = imageStorage;
     }
 
     @Override
@@ -112,6 +117,30 @@ public class ComercioServiceImpl implements ComercioService {
                     "motivo", "CUENTA_SUSPENDIDA")));
         }
         return activos.size();
+    }
+
+    @Override
+    @Transactional
+    public ComercioResponse subirImagen(Long operadorId, Long comercioId, MultipartFile archivo) {
+        Comercio comercio = obtenerPropio(operadorId, comercioId);
+        // subir valida tipo/firma/5MB y devuelve la clave del objeto ya guardado en R2
+        String claveNueva = imageStorage.subir("comercios", String.valueOf(comercio.getId()), archivo);
+        String vieja = comercio.getImagenKey();
+        comercio.cambiarImagen(claveNueva);
+        comercioRepository.save(comercio);
+        imageStorage.borrar(vieja);
+        return catalogoMapper.toResponse(comercio);
+    }
+
+    @Override
+    @Transactional
+    public ComercioResponse eliminarImagen(Long operadorId, Long comercioId) {
+        Comercio comercio = obtenerPropio(operadorId, comercioId);
+        String vieja = comercio.getImagenKey();
+        comercio.cambiarImagen(null);
+        comercioRepository.save(comercio);
+        imageStorage.borrar(vieja);
+        return catalogoMapper.toResponse(comercio);
     }
 
     /**

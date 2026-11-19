@@ -47,6 +47,10 @@ public class Servicio {
     @Column(nullable = false)
     private boolean activo;
 
+    /** Clave del objeto en R2; null si no tiene portada. */
+    @Column(name = "imagen_key", length = 512)
+    private String imagenKey;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
     private Map<String, Object> atributos;
@@ -91,6 +95,14 @@ public class Servicio {
         if (atributos != null) {
             this.atributos = Map.copyOf(atributos);
         }
+    }
+
+    public void cambiarImagen(String clave) {
+        this.imagenKey = clave;
+    }
+
+    public String getImagenKey() {
+        return imagenKey;
     }
 
     public void cambiarActivo(boolean nuevoEstado) {

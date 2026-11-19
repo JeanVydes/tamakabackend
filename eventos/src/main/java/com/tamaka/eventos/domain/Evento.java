@@ -50,6 +50,10 @@ public class Evento {
     @Column(nullable = false)
     private boolean activo;
 
+    /** Clave del objeto en R2; null si el evento no tiene imagen. */
+    @Column(name = "imagen_key", length = 512)
+    private String imagenKey;
+
     @Column(name = "creado_en", nullable = false)
     private Instant creadoEn;
 
@@ -141,6 +145,15 @@ public class Evento {
     public Long getGestorId() {
         return gestorId;
     }
+
+    public void cambiarImagen(String clave) {
+        this.imagenKey = clave;
+    }
+
+    public String getImagenKey() {
+        return imagenKey;
+    }
+
 
     public boolean isActivo() {
         return activo;
