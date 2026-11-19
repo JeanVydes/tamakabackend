@@ -326,6 +326,16 @@ fecha ya pasó, zona `America/Bogota`, cada `tamaka.reservas.intervalo-finalizac
 | Pagos | `GET /api/operador/pagos` | OPERADOR | Solo cobros de sus servicios |
 | Pagos | `GET /api/admin/pagos?estado=` | ADMIN | |
 | Preferencias | `POST /api/favoritos` con `tipo: COMERCIO` | TURISTA | Nuevo tipo de favorito |
+| Atractivos | `POST /api/atractivos/{id}/imagen` · `DELETE` | GESTOR, ADMIN | Portada (JPEG/PNG/WebP, máx. 5 MB) |
+| Comercios | `POST /api/comercios/{id}/imagen` · `DELETE` | OPERADOR dueño | Portada del comercio |
+| Servicios | `POST /api/servicios/{id}/imagen` · `DELETE` | OPERADOR dueño | Portada del servicio |
+| Eventos | `POST /api/eventos/{id}/imagen` · `DELETE` | GESTOR | Portada del evento |
+| Cuentas | `POST /api/cuentas/me/foto` · `DELETE` | autenticado | Foto de perfil (avatar en toda la UI) |
+
+Las imágenes se guardan en un bucket público de Cloudflare R2 (compatible con S3, p. ej. `cdn.vyde.dev`).
+Variables: `TAMAKA_STORAGE_ENDPOINT`, `TAMAKA_STORAGE_BUCKET`, `TAMAKA_STORAGE_PUBLIC_BASE_URL`,
+`TAMAKA_STORAGE_ACCESS_KEY_ID`, `TAMAKA_STORAGE_SECRET_ACCESS_KEY` (vacío = 503 en esas rutas).
+Las respuestas incluyen `imagen` (URL absoluta `https://<dominio>/<carpeta>/<id>/<uuid>.<ext>`) o `null` si no subes foto; la UI cae a una ilustrativa.
 
 Migraciones nuevas: `pagos/V2__operador_en_pagos.sql`, `eventos/V2__categoria_evento.sql`,
 `indicadores/V2__idempotencia_demanda.sql` (elimina duplicados conservando el de menor id antes del índice único;
